@@ -1,0 +1,108 @@
+import uuid
+from datetime import datetime
+
+from sqlalchemy import BigInteger, DateTime, Float, ForeignKey, Integer, String, Text, UniqueConstraint
+from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.orm import Mapped, mapped_column
+
+from .database import Base
+from .utils import utc_now
+
+
+def _uuid_str() -> str:
+    return str(uuid.uuid4())
+
+
+class User(Base):
+    __tablename__ = "users"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid_str)
+    email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
+    password_hash: Mapped[str] = mapped_column("password_hash", String(255), nullable=False)
+    name: Mapped[str] = mapped_column(String(120), nullable=False)
+    role: Mapped[str] = mapped_column(String(20), default="USER", nullable=False)
+    created_at: Mapped[datetime] = mapped_column("created_at", DateTime(timezone=True), default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column("updated_at", DateTime(timezone=True), default=utc_now, onupdate=utc_now)
+
+
+class Video(Base):
+    __tablename__ = "videos"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid_str)
+    user_id: Mapped[str] = mapped_column("user_id", String(36), ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    title: Mapped[str] = mapped_column(String(180), nullable=False)
+    description: Mapped[str | None] = mapped_column(Text)
+    object_key: Mapped[str] = mapped_column("object_key", String(1024), nullable=False)
+    file_name: Mapped[str] = mapped_column("file_name", String(255), nullable=False)
+    file_size: Mapped[int] = mapped_column("file_size", BigInteger, nullable=False)
+    content_type: Mapped[str] = mapped_column("content_type", String(120), nullable=False)
+    status: Mapped[str] = mapped_column(String(32), default="PENDING", index=True, nullable=False)
+    duration: Mapped[float | None] = mapped_column(Float)
+    thumbnail_key: Mapped[str | None] = mapped_column("thumbnail_key", String(1024))
+    created_at: Mapped[datetime] = mapped_column("created_at", DateTime(timezone=True), default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column("updated_at", DateTime(timezone=True), default=utc_now, onupdate=utc_now)
+    deleted_at: Mapped[datetime | None] = mapped_column("deleted_at", DateTime(timezone=True))
+
+
+class WorkflowStatusLog(Base):
+    __tablename__ = "workflow_status_logs"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid_str)
+    video_id: Mapped[str] = mapped_column("video_id", String(36), ForeignKey("videos.id", ondelete="CASCADE"), index=True)
+    service_name: Mapped[str] = mapped_column("service_name", String(120), nullable=False)
+    status: Mapped[str] = mapped_column(String(32), nullable=False)
+    message: Mapped[str | None] = mapped_column(String(500))
+    created_at: Mapped[datetime] = mapped_column("created_at", DateTime(timezone=True), default=utc_now)
+
+
+class Subscription(Base):
+    __tablename__ = "subscriptions"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid_str)
+    user_id: Mapped[str] = mapped_column("user_id", String(36), ForeignKey("users.id", ondelete="CASCADE"), unique=True)
+    plan_name: Mapped[str] = mapped_column("plan_name", String(20), default="FREE", nullable=False)
+    max_videos: Mapped[int] = mapped_column("max_videos", Integer, default=10, nullable=False)
+    max_storage_bytes: Mapped[int] = mapped_column("max_storage_bytes", BigInteger, default=5_368_709_120, nullable=False)
+    max_minutes: Mapped[int] = mapped_column("max_minutes", Integer, default=60, nullable=False)
+    started_at: Mapped[datetime] = mapped_column("started_at", DateTime(timezone=True), default=utc_now)
+    expires_at: Mapped[datetime | None] = mapped_column("expires_at", DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column("created_at", DateTime(timezone=True), default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column("updated_at", DateTime(timezone=True), default=utc_now, onupdate=utc_now)
+
+
+class BillingUsage(Base):
+    __tablename__ = "billing_usage"
+    __table_args__ = (UniqueConstraint("user_id", "month", name="billing_usage_user_id_month_key"),)
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid_str)
+    user_id: Mapped[str] = mapped_column("user_id", String(36), ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    month: Mapped[str] = mapped_column(String(7), nullable=False)
+    videos_uploaded: Mapped[int] = mapped_column("videos_uploaded", Integer, default=0, nullable=False)
+    storage_used_bytes: Mapped[int] = mapped_column("storage_used_bytes", BigInteger, default=0, nullable=False)
+    minutes_processed: Mapped[float] = mapped_column("minutes_processed", Float, default=0, nullable=False)
+    created_at: Mapped[datetime] = mapped_column("created_at", DateTime(timezone=True), default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column("updated_at", DateTime(timezone=True), default=utc_now, onupdate=utc_now)
+
+
+class CallbackEvent(Base):
+    __tablename__ = "callback_events"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid_str)
+    video_id: Mapped[str] = mapped_column("video_id", String(36), ForeignKey("videos.id", ondelete="CASCADE"), index=True)
+    service_name: Mapped[str] = mapped_column("service_name", String(120), nullable=False)
+    event_type: Mapped[str] = mapped_column("event_type", String(60), nullable=False)
+    payload: Mapped[dict | None] = mapped_column(JSONB)
+    received_at: Mapped[datetime] = mapped_column("received_at", DateTime(timezone=True), default=utc_now)
+
+
+class DeletedVideoCleanupLog(Base):
+    __tablename__ = "deleted_video_cleanup_logs"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid_str)
+    video_id: Mapped[str] = mapped_column("video_id", String(36), ForeignKey("videos.id", ondelete="CASCADE"), index=True)
+    object_key: Mapped[str] = mapped_column("object_key", String(1024), nullable=False)
+    status: Mapped[str] = mapped_column(String(20), default="PENDING", nullable=False)
+    attempts: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    error: Mapped[str | None] = mapped_column(String(500))
+    created_at: Mapped[datetime] = mapped_column("created_at", DateTime(timezone=True), default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column("updated_at", DateTime(timezone=True), default=utc_now, onupdate=utc_now)

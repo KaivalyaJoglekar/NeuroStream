@@ -1,0 +1,24 @@
+[project]
+name = "neurostream-ms4-fastapi"
+version = "1.0.0"
+description = "NeuroStream MS4 User Workflow Service powered by FastAPI"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+  "fastapi>=0.116.0",
+  "uvicorn[standard]>=0.35.0",
+  "sqlalchemy>=2.0.43",
+  "psycopg[binary]>=3.2.9",
+  "pydantic-settings>=2.10.1",
+  "python-jose[cryptography]>=3.5.0",
+  "passlib[bcrypt]>=1.7.4",
+  "bcrypt==3.2.2",
+  "redis>=6.4.0",
+  "boto3>=1.39.14",
+  "email-validator>=2.2.0",
+]
+
+[dependency-groups]
+dev = [
+  "ruff>=0.12.8",
+]

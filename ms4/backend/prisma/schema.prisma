@@ -1,0 +1,162 @@
+// NeuroStream MS4 – Database Schema
+// PostgreSQL via Prisma ORM
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Enums ───────────────────────────────────────────────
+
+enum UserRole {
+  USER
+  ADMIN
+}
+
+enum VideoStatus {
+  PENDING
+  UPLOADING
+  UPLOADED
+  QUEUED
+  PROCESSING
+  MEDIA_PROCESSED
+  AI_PROCESSED
+  INDEXED
+  ANALYTICS_READY
+  COMPLETED
+  FAILED
+  DELETED
+}
+
+enum PlanName {
+  FREE
+  PRO
+  ENTERPRISE
+}
+
+// ─── Models ──────────────────────────────────────────────
+
+model User {
+  id           String    @id @default(uuid())
+  email        String    @unique
+  passwordHash String    @map("password_hash")
+  name         String
+  role         UserRole  @default(USER)
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  videos       Video[]
+  subscription Subscription?
+  billingUsage BillingUsage[]
+
+  @@map("users")
+}
+
+model Video {
+  id          String      @id @default(uuid())
+  userId      String      @map("user_id")
+  title       String
+  description String?
+  objectKey   String      @map("object_key")
+  fileName    String      @map("file_name")
+  fileSize    BigInt      @map("file_size")
+  contentType String      @map("content_type")
+  status      VideoStatus @default(PENDING)
+  duration    Float?      // in seconds, populated after media processing
+  thumbnailKey String?    @map("thumbnail_key")
+  createdAt   DateTime    @default(now()) @map("created_at")
+  updatedAt   DateTime    @updatedAt @map("updated_at")
+  deletedAt   DateTime?   @map("deleted_at")
+
+  user            User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workflowLogs    WorkflowStatusLog[]
+  callbackEvents  CallbackEvent[]
+  cleanupLogs     DeletedVideoCleanupLog[]
+
+  @@index([userId])
+  @@index([status])
+  @@index([userId, status])
+  @@map("videos")
+}
+
+model WorkflowStatusLog {
+  id          String      @id @default(uuid())
+  videoId     String      @map("video_id")
+  serviceName String      @map("service_name")
+  status      VideoStatus
+  message     String?
+  createdAt   DateTime    @default(now()) @map("created_at")
+
+  video Video @relation(fields: [videoId], references: [id], onDelete: Cascade)
+
+  @@index([videoId])
+  @@map("workflow_status_logs")
+}
+
+model Subscription {
+  id              String   @id @default(uuid())
+  userId          String   @unique @map("user_id")
+  planName        PlanName @default(FREE) @map("plan_name")
+  maxVideos       Int      @default(10) @map("max_videos")
+  maxStorageBytes BigInt   @default(5368709120) @map("max_storage_bytes") // 5GB
+  maxMinutes      Int      @default(60) @map("max_minutes")
+  startedAt       DateTime @default(now()) @map("started_at")
+  expiresAt       DateTime? @map("expires_at")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("subscriptions")
+}
+
+model BillingUsage {
+  id               String   @id @default(uuid())
+  userId           String   @map("user_id")
+  month            String   // Format: YYYY-MM
+  videosUploaded   Int      @default(0) @map("videos_uploaded")
+  storageUsedBytes BigInt   @default(0) @map("storage_used_bytes")
+  minutesProcessed Float    @default(0) @map("minutes_processed")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, month])
+  @@index([userId])
+  @@map("billing_usage")
+}
+
+model CallbackEvent {
+  id          String   @id @default(uuid())
+  videoId     String   @map("video_id")
+  serviceName String   @map("service_name")
+  eventType   String   @map("event_type")
+  payload     Json?
+  receivedAt  DateTime @default(now()) @map("received_at")
+
+  video Video @relation(fields: [videoId], references: [id], onDelete: Cascade)
+
+  @@index([videoId])
+  @@map("callback_events")
+}
+
+model DeletedVideoCleanupLog {
+  id        String   @id @default(uuid())
+  videoId   String   @map("video_id")
+  objectKey String   @map("object_key")
+  status    String   @default("PENDING") // PENDING, COMPLETED, FAILED
+  attempts  Int      @default(0)
+  error     String?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  video Video @relation(fields: [videoId], references: [id], onDelete: Cascade)
+
+  @@index([videoId])
+  @@map("deleted_video_cleanup_logs")
+}
