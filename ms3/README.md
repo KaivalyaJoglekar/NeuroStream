@@ -2,14 +2,36 @@
 
 MS3 is the search and discovery service for NeuroStream. It accepts transcript chunks and embeddings from MS2, stores them, and serves search and retrieval endpoints for downstream services.
 
+## Default local port
+
+- `http://localhost:8003` (Docker Compose host mapping to container port `8000`)
+
 ## Endpoints
 
-- `POST /index` indexes transcript chunks and embeddings for a video.
-- `GET /search` runs hybrid search with optional metadata filters.
-- `GET /video/{video_id}/status` returns readiness for a video.
-- `GET /video/{video_id}/chunks` returns indexed chunks for a video.
-- `GET /video/{video_id}/context` returns formatted retrieval blocks for RAG.
-- `GET /health` reports service health and storage backend.
+- `GET /health`
+	- Task: Liveness/health check.
+	- Also reports which storage backend is active (e.g. `postgres`).
+
+- `POST /index`
+	- Task: Ingest transcript chunks + embeddings for a video and persist them.
+	- Validates embedding length matches `EMBEDDING_DIMENSIONS` (default `768`).
+	- Expected outcome: video transitions to a `ready` state for search.
+
+- `GET /search`
+	- Task: Return ranked results using text and/or embedding similarity plus optional metadata filters.
+	- Common query params:
+		- `q`/`query` (free text)
+		- `query_embedding` (comma-separated floats)
+		- `video_id`, `language`, `title_contains`, `source`, `limit`
+
+- `GET /video/{video_id}/status`
+	- Task: Return indexing readiness/status for a video.
+
+- `GET /video/{video_id}/chunks`
+	- Task: Return all stored chunks for a video (useful for debugging and downstream context building).
+
+- `GET /video/{video_id}/context`
+	- Task: Build formatted context blocks (RAG-style) for a video, optionally guided by a query or query embedding.
 
 ## Environment
 

@@ -3,8 +3,8 @@ version: "3.9"
 services:
   redis:
     image: redis:7-alpine
-    ports:
-      - "6379:6379"
+  # No host port mapping to avoid clashes with other stacks.
+  # MS2 will reach it via the Docker network at redis:6379.
 
   # Optional: bring up MS3 alongside MS2 for end-to-end local testing.
   # Comment out this service if you want MS2 to point at an external MS3.
