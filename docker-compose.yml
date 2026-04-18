@@ -1,6 +1,44 @@
 version: "3.9"
 
 services:
+  minio:
+    image: minio/minio:latest
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio_data:/data
+
+  # MinIO bucket initialization for MS1 (safe to keep even if MS1 is disabled)
+  minio-init:
+    image: minio/mc:latest
+    depends_on:
+      - minio
+    entrypoint: >
+      /bin/sh -c "
+        mc alias set local http://minio:9000 minioadmin minioadmin;
+        mc mb local/neurostream-media --ignore-existing;
+        echo 'Bucket neurostream-media created';
+      "
+
+  ms1:
+    build:
+      context: ./ms1
+    container_name: ms1-media-processor
+    env_file:
+      - ./ms1/.env.example
+    ports:
+      - "8081:8081"
+    volumes:
+      - /tmp/neurostream:/tmp/neurostream
+    depends_on:
+      - redis
+      - minio
+
   postgres:
     image: pgvector/pgvector:pg16
     environment:
@@ -47,4 +85,5 @@ services:
 
 volumes:
   pgdata:
+  minio_data:
 

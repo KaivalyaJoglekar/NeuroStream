@@ -1,0 +1,28 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_DB: neurostream
+      POSTGRES_USER: neurostream
+      POSTGRES_PASSWORD: neurostream
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  ms3:
+    build:
+      context: .
+    environment:
+      DATABASE_URL: postgresql+asyncpg://neurostream:neurostream@postgres:5432/neurostream
+      MS4_BASE_URL: http://host.docker.internal:8084
+      EMBEDDING_DIMENSIONS: 768
+    depends_on:
+      - postgres
+    ports:
+      - "8003:8000"
+
+volumes:
+  pgdata:
