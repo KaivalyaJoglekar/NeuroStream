@@ -36,9 +36,7 @@ public class SummarizerAgent {
 
     /** MAP step: summarize a single transcript time window. */
     public String summarizeSegment(String segmentText, double startTime, double endTime) {
-        String prompt = "You are a video transcript summarizer. Summarize the following " +
-                "transcript segment concisely, capturing the key points discussed.\n\n" +
-                String.format("Segment [%.0fs - %.0fs]:\n%s", startTime, endTime, segmentText);
+        String prompt = String.format("Summarize concisely.\n\n[%.0fs-%.0fs]:\n%s", startTime, endTime, segmentText);
 
         return geminiClient.generateText(prompt, temperature).trim();
     }
@@ -47,11 +45,7 @@ public class SummarizerAgent {
     @SuppressWarnings("unchecked")
     public ReduceResult reduce(List<Map<String, Object>> segmentSummaries, String style) {
         var sb = new StringBuilder();
-        sb.append("You are a video summarization expert. Given segment summaries from a video, ");
-        sb.append("produce a cohesive ").append(style != null ? style : "executive").append(" summary.\n\n");
-        sb.append("Return a JSON object with:\n");
-        sb.append("- \"summary\": overall summary text (string)\n");
-        sb.append("- \"chapters\": array of objects with \"title\", \"start_time\", \"end_time\", \"summary\"\n\n");
+        sb.append("Merge into one summary. Return JSON: {\"summary\":\"\",\"chapters\":[{\"title\":\"\",\"start_time\":0,\"end_time\":0,\"summary\":\"\"}]}\n\n");
         sb.append("Segment Summaries:\n");
         for (var seg : segmentSummaries) {
             sb.append(String.format("- [%.0fs-%.0fs]: %s%n",

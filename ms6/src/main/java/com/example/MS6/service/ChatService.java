@@ -71,7 +71,7 @@ public class ChatService {
 
         // 1. Global search via MS3
         t = System.currentTimeMillis();
-        var searchResponse = retriever.searchGlobal(request.question(), request.language(), 15);
+        var searchResponse = retriever.searchGlobal(request.question(), request.language(), 8);
         trace.put("retriever", Map.of(
                 "chunks_fetched", searchResponse.total(),
                 "latency_ms", System.currentTimeMillis() - t));

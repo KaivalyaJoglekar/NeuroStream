@@ -50,18 +50,11 @@ public class CitationLinkerAgent {
 
     private String buildPrompt(String answer, List<AnalyzedFact> facts) {
         var sb = new StringBuilder();
-        sb.append("You are a citation engine. Given an answer text and source facts from ");
-        sb.append("video transcripts, produce a JSON array of citations. Map each factual ");
-        sb.append("claim in the answer to the source fact it came from.\n\n");
-        sb.append("Each citation must have:\n");
-        sb.append("- \"start_time\": start timestamp in seconds (number)\n");
-        sb.append("- \"end_time\": end timestamp in seconds (number)\n");
-        sb.append("- \"text\": the original source transcript text (string)\n");
-        sb.append("- \"source\": \"audio\" or \"visual\" (string)\n\n");
-        sb.append("Answer:\n").append(answer).append("\n\n");
-        sb.append("Source Facts:\n");
+        sb.append("Map claims to sources. Return JSON: ");
+        sb.append("[{\"start_time\":0,\"end_time\":0,\"text\":\"\",\"source\":\"audio\"}]\n\n");
+        sb.append("Answer: ").append(answer).append("\n\nSources:\n");
         for (var fact : facts) {
-            sb.append(String.format("- [%.2f-%.2f] %s%n",
+            sb.append(String.format("- [%.1f-%.1f] %s%n",
                     fact.startTime(), fact.endTime(), fact.sourceText()));
         }
         return sb.toString();

@@ -52,16 +52,9 @@ public class AnalyzerAgent {
 
     private String buildPrompt(String question, List<String> blocks) {
         var sb = new StringBuilder();
-        sb.append("You are a video transcript analyst. Given a user question and transcript ");
-        sb.append("chunks with timestamps, identify which chunks are directly relevant to ");
-        sb.append("the question. For each relevant chunk, extract the key fact.\n\n");
-        sb.append("Return a JSON array of objects. Each object must have exactly these fields:\n");
-        sb.append("- \"fact\": the key information extracted (string)\n");
-        sb.append("- \"start_time\": start timestamp in seconds (number)\n");
-        sb.append("- \"end_time\": end timestamp in seconds (number)\n");
-        sb.append("- \"source_text\": the original transcript text (string)\n\n");
-        sb.append("If no chunks are relevant, return an empty array [].\n\n");
-        sb.append("Question: ").append(question).append("\n\nTranscript Chunks:\n");
+        sb.append("Extract relevant facts for the question. Return JSON: ");
+        sb.append("[{\"fact\":\"\",\"start_time\":0,\"end_time\":0,\"source_text\":\"\"}]. Empty [] if none.\n\n");
+        sb.append("Q: ").append(question).append("\n\n");
         for (int i = 0; i < blocks.size(); i++) {
             sb.append(i + 1).append(". ").append(blocks.get(i)).append("\n");
         }

@@ -34,10 +34,7 @@ public class PlannerAgent {
 
     /** Break a topic into 3-4 focused sub-queries. */
     public List<String> plan(String topic) {
-        String prompt = "You are a research planner. Break down the following research topic " +
-                "into 3-4 focused sub-questions that would be effective for searching " +
-                "video transcript databases. Return a JSON array of strings.\n\n" +
-                "Topic: " + topic;
+        String prompt = "Split into 3 search queries for video transcripts. Return JSON string array.\n\nTopic: " + topic;
 
         String json = geminiClient.generateJson(prompt, temperature);
         log.debug("PlannerAgent output: {}", json);

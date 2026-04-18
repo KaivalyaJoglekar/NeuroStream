@@ -17,6 +17,8 @@ These are the **host** ports exposed by the repo's compose files.
 | MS1 (media processor) | `http://localhost:8081` | Root compose + `ms1/docker-compose.yml` expose this port. |
 | MS2 (AI perception API) | `http://localhost:8002` | Maps to container port `8000`. |
 | MS3 (index + search API) | `http://localhost:8003` | Maps to container port `8000`. |
+| MS6 (agentic RAG / brain) | `http://localhost:8086` | Spring Boot; requires `GEMINI_API_KEY` and MS3 running. |
+| MS7 (PDF export) | `http://localhost:8007` | FastAPI; requires dedicated AWS S3 export bucket credentials. |
 | MinIO (S3 API) | `http://localhost:9000` | S3-compatible endpoint. |
 | MinIO Console (UI) | `http://localhost:9001` | Web UI. |
 | Postgres (pgvector) | `localhost:5432` | Exposed in root compose and MS2/MS3 stacks. |
@@ -119,13 +121,85 @@ These are the **host** ports exposed by the repo's compose files.
 
 ---
 
-## How the services connect (current repo wiring)
+## MS6 — Agentic RAG / Brain (Spring Boot, Java 21)
 
-- **MS1 > (Redis + S3/MinIO)**
+**Purpose:** Multi-agent reasoning layer. Retrieves transcript context from MS3, chains multiple Gemini API calls to produce cited, conversational answers.
+
+### Inputs
+- **HTTP** `POST /api/v1/chat` — `video_id`, `question`, optional `conversation_history[]`
+- **HTTP** `POST /api/v1/search-chat` — `question`, optional `language` (cross-library search)
+- **HTTP** `POST /api/v1/summarize` — `video_id`, optional `style`
+- **HTTP** `POST /api/v1/research` — `topic`, optional `video_ids[]`, optional `max_iterations`
+
+### Outputs
+- **HTTP responses** — all include `agent_trace` map for observability
+  - `/chat` → `{ answer, citations[], agent_trace }`
+  - `/summarize` → `{ video_id, summary, chapters[], agent_trace }`
+  - `/research` → `{ report, sources_used, videos_analyzed, iterations_taken, agent_trace }`
+- **Gemini API** (outbound) — REST calls per agent step (Analyzer, Synthesizer, CitationLinker, Planner, Summarizer)
+- **MS3** (outbound) — calls `/search` and `/video/{id}/context` to fetch ranked transcript chunks
+
+### Agent pipeline
+```
+Retriever (MS3 HTTP) → Analyzer (Gemini) → Synthesizer (Gemini) → CitationLinker (Gemini)
+```
+
+### Key endpoints
+- `GET /health`
+- `POST /api/v1/chat`
+- `POST /api/v1/search-chat`
+- `POST /api/v1/summarize`
+- `POST /api/v1/research`
+
+### Key env vars
+- `GEMINI_API_KEY` (required)
+- `MS3_BASE_URL` (default: `http://localhost:8003`)
+
+---
+
+## MS7 — PDF Export (FastAPI, Python)
+
+**Purpose:** Stateless export layer. Accepts MS6 JSON responses, renders them into formatted PDF documents, uploads to a dedicated AWS S3 bucket, and returns a presigned download URL.
+
+### Inputs
+- **HTTP** `POST /api/v1/export/chat` — `title`, `question`, `answer`, `citations[]`
+- **HTTP** `POST /api/v1/export/summarize` — `video_id`, `title`, `summary`, `chapters[]`
+- **HTTP** `POST /api/v1/export/research` — `topic`, `title`, `report`, `sources_used`, `videos_analyzed`
+
+### Outputs
+- **AWS S3** (`neurostream-exports` bucket — separate from MS1/MS2 MinIO)
+  - Uploads PDF under `chat/`, `summary/`, or `research/` prefix
+- **HTTP response** — `{ download_url, s3_key, expires_in_seconds }`
+  - `download_url` is a presigned S3 GET URL (default TTL: 3600s)
+
+### Key endpoints
+- `GET /health`
+- `POST /api/v1/export/chat`
+- `POST /api/v1/export/summarize`
+- `POST /api/v1/export/research`
+
+### Key env vars
+- `AWS_ACCESS_KEY_ID` + `AWS_SECRET_ACCESS_KEY` (required — dedicated IAM user)
+- `S3_EXPORT_BUCKET` (default: `neurostream-exports`)
+
+---
+
+## How the services connect (full pipeline wiring)
+
+- **MS1 → (Redis + S3/MinIO)**
   - MS1 reads job messages from Redis and reads/writes objects in S3/MinIO.
-- **MS2 > MS3 (HTTP)**
-  - MS2 sends normalized chunks+embeddings to MS3s `POST /index`.
+- **MS2 → MS3 (HTTP)**
+  - MS2 sends normalized chunks + embeddings to MS3's `POST /index`.
+- **MS3 → MS6 (HTTP, inbound from MS6)**
+  - MS6 calls MS3 `/search` and `/video/{id}/context` to retrieve ranked transcript chunks for the agent pipeline.
+- **MS6 → Gemini API (HTTP, outbound)**
+  - MS6 makes chained Gemini REST calls per agent step (Analyzer → Synthesizer → CitationLinker).
+- **MS6 → MS7 (via frontend/MS4)**
+  - The frontend or MS4 orchestrator passes MS6 JSON responses to MS7 for PDF export. MS7 does not call MS6 directly.
+- **MS7 → AWS S3 (HTTP)**
+  - MS7 uploads generated PDFs to the dedicated `neurostream-exports` S3 bucket and returns a presigned URL.
 - **MS4 (not in this repo)**
   - Several services can notify MS4, but MS4 is optional for local smoke tests.
 
 > Note: MS3 does **not** read MinIO directly; it only indexes what it receives via `POST /index`.
+> Note: MS7 uses its own dedicated AWS S3 bucket — not the MinIO instance used by MS1/MS2.
