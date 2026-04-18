@@ -83,6 +83,24 @@ services:
     ports:
       - "8002:8000"
 
+  ms5:
+    build:
+      context: ./ms5-analytics
+    container_name: ms5-analytics
+    environment:
+      DATABASE_URL: postgresql+asyncpg://neurostream:neurostream@postgres:5432/neurostream
+      REDIS_URL: redis://redis:6379/1
+      APP_ENV: development
+      APP_PORT: "8085"
+      INTERNAL_API_SECRET: your_shared_internal_secret
+    depends_on:
+      - postgres
+      - redis
+    ports:
+      - "8085:8085"
+    command: >
+      sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8085"
+
 volumes:
   pgdata:
   minio_data:
