@@ -1,0 +1,30 @@
+server:
+  port: 8086
+
+spring:
+  application:
+    name: neurostream-ms6
+  jackson:
+    property-naming-strategy: SNAKE_CASE
+
+ms3:
+  base-url: ${MS3_BASE_URL:http://localhost:8003}
+  default-limit: ${MS3_DEFAULT_LIMIT:5}
+
+gemini:
+  api-key: ${GEMINI_API_KEY:}
+  model: ${GEMINI_MODEL:gemini-2.5-flash}
+  max-output-tokens: ${GEMINI_MAX_TOKENS:1024}
+
+agent:
+  analyzer-temperature: 0.1
+  synthesizer-temperature: 0.5
+  citation-temperature: 0.0
+  planner-temperature: 0.3
+  summarizer-temperature: 0.3
+  research-max-iterations: ${RESEARCH_MAX_ITERATIONS:5}
+  summarize-window-seconds: ${SUMMARIZE_WINDOW_SECONDS:300}
+
+logging:
+  level:
+    com.example.MS6: DEBUG
