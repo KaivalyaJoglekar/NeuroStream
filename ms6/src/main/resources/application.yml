@@ -6,6 +6,11 @@ spring:
     name: neurostream-ms6
   jackson:
     property-naming-strategy: SNAKE_CASE
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USER:guest}
+    password: ${RABBITMQ_PASS:guest}
 
 ms3:
   base-url: ${MS3_BASE_URL:http://localhost:8003}
@@ -25,12 +30,7 @@ agent:
   research-max-iterations: ${RESEARCH_MAX_ITERATIONS:5}
   summarize-window-seconds: ${SUMMARIZE_WINDOW_SECONDS:300}
 
-spring:
-  rabbitmq:
-    host: ${RABBITMQ_HOST:localhost}
-    port: ${RABBITMQ_PORT:5672}
-    username: ${RABBITMQ_USER:guest}
-    password: ${RABBITMQ_PASS:guest}
+# (RabbitMQ config merged up to the primary spring block)
 
 logging:
   level:
