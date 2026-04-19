@@ -11,7 +11,7 @@ from ..queues import publish_cleanup_job
 from ..responses import paginated_response, success_response
 from ..schemas import RenameVideoRequest, VideoInteractionEventRequest
 from ..serializers import serialize_video, serialize_workflow_log
-from ..storage import delete_object, generate_presigned_get_url
+from ..storage import delete_object, generate_presigned_get_url_cached
 from ..utils import utc_now
 from .helpers import ensure_subscription
 
@@ -80,7 +80,7 @@ def fetch_video_details(
     return success_response(
         {
             **serialize_video(video),
-            "fileUrl": generate_presigned_get_url(video.object_key),
+            "fileUrl": generate_presigned_get_url_cached(video.object_key),
             "workflowLogs": [serialize_workflow_log(log) for log in logs],
             "searchableReady": video.status in {"INDEXED", "ANALYTICS_READY", "COMPLETED"},
             "processedReady": video.status in {"ANALYTICS_READY", "COMPLETED"},

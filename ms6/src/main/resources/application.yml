@@ -6,6 +6,9 @@ spring:
     name: neurostream-ms6
   jackson:
     property-naming-strategy: SNAKE_CASE
+  autoconfigure:
+    exclude:
+      - ${EXCLUDE_RABBIT:org.springframework.boot.autoconfigure.amqp.RabbitAutoConfiguration}
   cloud:
     aws:
       region:
@@ -22,6 +25,14 @@ spring:
     port: ${RABBITMQ_PORT:5672}
     username: ${RABBITMQ_USER:guest}
     password: ${RABBITMQ_PASS:guest}
+    connection-timeout: 3000
+
+# ── Export Publisher ──────────────────────────────────────────────────────────
+# transport: "http" (default) = direct POST to MS7, no broker needed
+#            "rabbitmq"       = publish to RabbitMQ queue (requires broker)
+export:
+  transport: ${EXPORT_TRANSPORT:http}
+  ms7-base-url: ${MS7_BASE_URL:http://localhost:8007}
 
 ms3:
   base-url: ${MS3_BASE_URL:http://13.201.89.80:8003}

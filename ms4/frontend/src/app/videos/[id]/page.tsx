@@ -14,7 +14,7 @@ import { StatusBadge } from '../../../components/ui/status-badge';
 import { bytesToSize, formatDate } from '../../../utils/format';
 import { CognitivePanel } from '../../../components/video/cognitive-panel';
 
-const finalStatuses = new Set(['COMPLETED', 'FAILED', 'DELETED']);
+const finalStatuses = new Set(['INDEXED', 'ANALYTICS_READY', 'COMPLETED', 'FAILED', 'DELETED']);
 
 const STAGES: VideoStatus[] = [
   'UPLOADED',

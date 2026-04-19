@@ -1,5 +1,6 @@
 import boto3
 import logging
+import time
 from botocore.client import Config
 from botocore.exceptions import ClientError
 from urllib.parse import urlparse
@@ -105,6 +106,29 @@ def generate_presigned_get_url(object_key: str, expires: int = 3600) -> str:
         },
         ExpiresIn=expires,
     )
+
+
+# ── Presigned GET URL cache ─────────────────────────────────────────────────
+# Presigned URLs are valid for `expires` seconds (default 3600 = 1 hour).
+# Re-generating one on every polling request hammers S3 rate limits for no
+# benefit.  We cache the URL for 50 minutes and only regenerate once it is
+# within 10 minutes of expiry.
+_PRESIGN_TTL = 3000  # 50 minutes
+_presigned_cache: dict[str, tuple[str, float]] = {}
+
+
+def generate_presigned_get_url_cached(object_key: str, expires: int = 3600) -> str:
+    """Return a cached presigned GET URL, regenerating only when the TTL expires."""
+    now = time.time()
+    cached = _presigned_cache.get(object_key)
+    if cached:
+        url, created_at = cached
+        if now - created_at < _PRESIGN_TTL:
+            return url
+
+    url = generate_presigned_get_url(object_key, expires)
+    _presigned_cache[object_key] = (url, now)
+    return url
 
 
 def delete_object(object_key: str) -> None:

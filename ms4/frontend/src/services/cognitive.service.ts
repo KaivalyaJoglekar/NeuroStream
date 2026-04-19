@@ -176,12 +176,18 @@ async function microserviceRequest<T>(url: string, options: RequestInit = {}): P
     headers.set('Authorization', `Bearer ${token}`);
   }
 
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 45000);
+
   try {
     const response = await fetch(url, {
       ...options,
       headers,
       cache: 'no-store',
+      signal: controller.signal,
     });
+
+    clearTimeout(timeout);
 
     const contentType = response.headers.get('content-type') ?? '';
     const payload = contentType.includes('application/json') ? (await response.json()) : null;
@@ -202,6 +208,13 @@ async function microserviceRequest<T>(url: string, options: RequestInit = {}): P
       data: payload as T,
     };
   } catch (error: unknown) {
+    clearTimeout(timeout);
+    if (error instanceof DOMException && error.name === 'AbortError') {
+      return {
+        success: false,
+        error: 'Request timed out after 45 seconds. The service may be starting up — please try again.',
+      };
+    }
     const message = error instanceof Error ? error.message : 'Unknown error';
     return {
       success: false,
