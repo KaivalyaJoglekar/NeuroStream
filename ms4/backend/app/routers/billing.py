@@ -31,8 +31,15 @@ def billing_summary(
         )
     ) or 0
 
-    videos_uploaded = usage.videos_uploaded if usage else 0
-    storage_used = int(usage.storage_used_bytes) if usage else int(current_storage)
+    current_video_count = db.scalar(
+        select(func.count(Video.id)).where(
+            Video.user_id == current_user.id,
+            Video.deleted_at.is_(None),
+        )
+    ) or 0
+
+    videos_uploaded = int(current_video_count)
+    storage_used = int(current_storage)
     minutes_processed = float(usage.minutes_processed) if usage else 0.0
 
     remaining_storage = int(subscription.max_storage_bytes) - storage_used

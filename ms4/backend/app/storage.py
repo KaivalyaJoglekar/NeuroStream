@@ -51,3 +51,7 @@ def generate_presigned_get_url(object_key: str, expires: int = 3600) -> str:
         },
         ExpiresIn=expires,
     )
+
+
+def delete_object(object_key: str) -> None:
+    s3_client.delete_object(Bucket=settings.minio_bucket, Key=object_key)

@@ -15,11 +15,14 @@ export function VideoCard({
   onDelete: (video: Video) => void;
   onRename: (video: Video) => void;
 }) {
+  const displayTitle =
+    video.title.trim() || video.fileName.replace(/\.[^/.]+$/, '') || 'Untitled video';
+
   return (
     <Card className="group p-5 transition duration-300 hover:-translate-y-0.5 hover:border-brand-border hover:bg-white/[0.03]">
       <div className="mb-4 flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <h3 className="line-clamp-1 text-base font-semibold text-white">{video.title}</h3>
+          <h3 className="line-clamp-1 text-base font-semibold text-white">{displayTitle}</h3>
           <p className="mt-1 line-clamp-1 text-xs text-textMuted">{video.fileName}</p>
         </div>
         <StatusBadge status={video.status} />

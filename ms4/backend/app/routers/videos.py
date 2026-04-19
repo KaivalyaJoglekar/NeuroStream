@@ -5,12 +5,13 @@ from sqlalchemy.orm import Session
 from ..constants import VIDEO_STATUSES
 from ..database import get_db
 from ..deps import get_current_user
+from ..ms5_client import forward_event_to_ms5
 from ..models import DeletedVideoCleanupLog, User, Video, WorkflowStatusLog
 from ..queues import publish_cleanup_job
 from ..responses import paginated_response, success_response
-from ..schemas import RenameVideoRequest
+from ..schemas import RenameVideoRequest, VideoInteractionEventRequest
 from ..serializers import serialize_video, serialize_workflow_log
-from ..storage import generate_presigned_get_url
+from ..storage import delete_object, generate_presigned_get_url
 from ..utils import utc_now
 from .helpers import ensure_subscription
 
@@ -87,6 +88,46 @@ def fetch_video_details(
     )
 
 
+@router.post("/{video_id}/events")
+def ingest_video_event(
+    video_id: str,
+    payload: VideoInteractionEventRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    video = db.scalar(
+        select(Video).where(
+            Video.id == video_id,
+            Video.user_id == current_user.id,
+            Video.deleted_at.is_(None),
+        )
+    )
+    if not video:
+        raise HTTPException(status_code=404, detail="Video not found.")
+
+    forwarded = forward_event_to_ms5(
+        user_id=current_user.id,
+        video_id=video.id,
+        event_type=payload.eventType,
+        timestamp_sec=payload.timestampSec,
+        query_text=payload.queryText,
+        session_id=payload.sessionId,
+    )
+
+    if not forwarded:
+        raise HTTPException(status_code=502, detail="Failed to forward event to analytics service.")
+
+    return success_response(
+        {
+            "videoId": video.id,
+            "eventType": payload.eventType,
+            "forwarded": True,
+        },
+        message="Video event forwarded to analytics service.",
+        status_code=201,
+    )
+
+
 @router.patch("/{video_id}/rename")
 def rename_video(
     video_id: str,
@@ -137,6 +178,13 @@ def delete_video(
 
     ensure_subscription(db, current_user.id)
 
+    storage_deleted = False
+    try:
+        delete_object(video.object_key)
+        storage_deleted = True
+    except Exception:
+        storage_deleted = False
+
     video.status = "DELETED"
     video.deleted_at = utc_now()
 
@@ -145,32 +193,41 @@ def delete_video(
             video_id=video.id,
             service_name="user-workflow-service",
             status="DELETED",
-            message="Video marked for deletion and cleanup queued",
+            message=(
+                "Video deleted and object removed from storage"
+                if storage_deleted
+                else "Video marked for deletion and cleanup queued"
+            ),
         )
     )
     db.add(
         DeletedVideoCleanupLog(
             video_id=video.id,
             object_key=video.object_key,
-            status="PENDING",
-            attempts=0,
+            status="COMPLETED" if storage_deleted else "PENDING",
+            attempts=0 if storage_deleted else 1,
         )
     )
     db.commit()
 
-    publish_cleanup_job(
-        {
-            "videoId": video.id,
-            "userId": current_user.id,
-            "objectKey": video.object_key,
-        }
-    )
+    if not storage_deleted:
+        publish_cleanup_job(
+            {
+                "videoId": video.id,
+                "userId": current_user.id,
+                "objectKey": video.object_key,
+            }
+        )
 
     return success_response(
         {
             "id": video.id,
             "status": video.status,
-            "message": "Video deleted and downstream cleanup scheduled.",
+            "message": (
+                "Video deleted and removed from storage."
+                if storage_deleted
+                else "Video deleted and downstream cleanup scheduled."
+            ),
         },
         message="Video deleted successfully.",
     )

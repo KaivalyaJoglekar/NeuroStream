@@ -39,6 +39,13 @@ class RenameVideoRequest(BaseSchema):
     title: str = Field(min_length=1, max_length=180)
 
 
+class VideoInteractionEventRequest(BaseSchema):
+    eventType: Literal["SEEK", "REPLAY", "SEARCH", "PAUSE", "PLAY"]
+    timestampSec: float = Field(ge=0)
+    queryText: str | None = Field(default=None, max_length=500)
+    sessionId: str | None = Field(default=None, max_length=64)
+
+
 class StatusCallbackRequest(BaseSchema):
     videoId: str
     serviceName: Literal[

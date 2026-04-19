@@ -1,12 +1,13 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, Clock3, FileText } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { ProtectedRoute } from '../../../components/protected-route';
 import { AppShell } from '../../../components/layout/app-shell';
-import { fetchVideoDetails } from '../../../services/video.service';
+import { fetchVideoDetails, trackVideoEvent } from '../../../services/video.service';
+import { useAuth } from '../../../hooks/use-auth';
 import { VideoDetails, VideoStatus } from '../../../types/domain';
 import { Card } from '../../../components/ui/card';
 import { StatusBadge } from '../../../components/ui/status-badge';
@@ -38,8 +39,10 @@ export default function VideoDetailsPage() {
 }
 
 function VideoDetailsView({ videoId }: { videoId: string }) {
+  const { user } = useAuth();
   const [video, setVideo] = useState<VideoDetails | null>(null);
   const [loading, setLoading] = useState(true);
+  const lastPlaybackTimeRef = useRef(0);
 
   const shouldPoll = useMemo(() => {
     return video ? !finalStatuses.has(video.status) : false;
@@ -49,7 +52,21 @@ function VideoDetailsView({ videoId }: { videoId: string }) {
     setLoading(true);
     const response = await fetchVideoDetails(videoId);
     if (response.success && response.data) {
-      setVideo(response.data);
+      setVideo((previous) => {
+        if (
+          previous &&
+          previous.id === response.data.id &&
+          previous.objectKey === response.data.objectKey &&
+          previous.fileUrl
+        ) {
+          return {
+            ...response.data,
+            // Preserve current playback URL to avoid resetting the player while polling.
+            fileUrl: previous.fileUrl,
+          };
+        }
+        return response.data;
+      });
     }
     setLoading(false);
   }, [videoId]);
@@ -78,6 +95,19 @@ function VideoDetailsView({ videoId }: { videoId: string }) {
     return <Card className="p-10 text-center text-textMuted">Video not found.</Card>;
   }
 
+  const sessionId = user ? `ms4-web-${user.id}` : undefined;
+
+  const sendEvent = (eventType: 'SEEK' | 'REPLAY' | 'PAUSE' | 'PLAY', timestampSec: number) => {
+    if (!Number.isFinite(timestampSec) || timestampSec < 0) {
+      return;
+    }
+    void trackVideoEvent(videoId, {
+      eventType,
+      timestampSec,
+      sessionId,
+    });
+  };
+
   return (
     <div className="space-y-5">
       <Link href="/library" className="inline-flex items-center text-sm text-accent hover:underline">
@@ -93,6 +123,25 @@ function VideoDetailsView({ videoId }: { videoId: string }) {
               controls
               className="w-full max-h-[60vh] object-contain"
               controlsList="nodownload"
+              onPlay={(event) => {
+                const now = event.currentTarget.currentTime;
+                lastPlaybackTimeRef.current = now;
+                sendEvent('PLAY', now);
+              }}
+              onPause={(event) => {
+                const now = event.currentTarget.currentTime;
+                lastPlaybackTimeRef.current = now;
+                sendEvent('PAUSE', now);
+              }}
+              onTimeUpdate={(event) => {
+                lastPlaybackTimeRef.current = event.currentTarget.currentTime;
+              }}
+              onSeeked={(event) => {
+                const now = event.currentTarget.currentTime;
+                const eventType = now + 1 < lastPlaybackTimeRef.current ? 'REPLAY' : 'SEEK';
+                sendEvent(eventType, now);
+                lastPlaybackTimeRef.current = now;
+              }}
             />
           </div>
         )}

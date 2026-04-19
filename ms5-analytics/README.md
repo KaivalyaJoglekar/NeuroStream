@@ -30,6 +30,49 @@ uvicorn app.main:app --host 0.0.0.0 --port 8085 --reload
 | POST | `/api/v1/analytics/{user_id}/{video_id}/recompute` | Force recompute |
 | GET | `/health` | Health check |
 
+## Input Contract From MS4
+
+MS5 expects user interaction events to be forwarded by MS4 to:
+
+- Method: `POST`
+- Endpoint: `/api/v1/events`
+- Header: `X-Internal-Secret: <shared-secret>`
+
+### Request body
+
+```json
+{
+	"user_id": "<ms4-user-id>",
+	"video_id": "<ms4-video-id>",
+	"event_type": "PLAY|PAUSE|SEEK|REPLAY|SEARCH",
+	"timestamp_sec": 42.0,
+	"query_text": "required only for SEARCH",
+	"session_id": "optional-ms4-session-id"
+}
+```
+
+### Validation rules
+
+- `timestamp_sec` is required for all events.
+- `query_text` is required when `event_type` is `SEARCH`.
+- Missing or invalid `X-Internal-Secret` returns `403`.
+
+### Minimal cURL example
+
+```bash
+curl -X POST "http://localhost:8085/api/v1/events" \
+	-H "Content-Type: application/json" \
+	-H "X-Internal-Secret: your_shared_internal_secret" \
+	-d '{
+		"user_id": "usr_123",
+		"video_id": "vid_456",
+		"event_type": "SEARCH",
+		"timestamp_sec": 125.4,
+		"query_text": "key insight",
+		"session_id": "ms4-web-usr_123"
+	}'
+```
+
 ## Tests
 
 ```bash

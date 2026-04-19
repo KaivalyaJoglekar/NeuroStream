@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { ArrowRight, Clock3, ShieldCheck, UploadCloud } from 'lucide-react';
 import { ProtectedRoute } from '../../components/protected-route';
 import { AppShell } from '../../components/layout/app-shell';
@@ -36,14 +36,7 @@ function UploadPanel() {
   const { pushToast } = useToast();
 
   const safeProgress = clampPercent(progress);
-
-  useEffect(() => {
-    if (!file || title.trim().length > 0) {
-      return;
-    }
-
-    setTitle(deriveTitleFromFilename(file.name));
-  }, [file, title]);
+  const suggestedTitle = file ? deriveTitleFromFilename(file.name) : '';
 
   function deriveTitleFromFilename(filename: string) {
     const withoutExt = filename.replace(/\.[^/.]+$/, '');
@@ -195,18 +188,33 @@ function UploadPanel() {
               </span>
             </div>
 
-            <UploadDropzone onFileSelect={setFile} disabled={loading} />
+            <UploadDropzone
+              onFileSelect={(nextFile) => {
+                setFile(nextFile);
+              }}
+              disabled={loading}
+            />
 
             <div className="space-y-3 rounded-2xl border border-transparent bg-white/[0.02] p-4">
               <div className="space-y-1.5">
-                <label htmlFor="upload-title" className="text-xs text-textMuted">
-                  Title
-                </label>
+                <div className="flex items-center justify-between">
+                  <label htmlFor="upload-title" className="text-xs text-textMuted">
+                    Title
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setTitle(suggestedTitle)}
+                    disabled={loading || !suggestedTitle}
+                    className="text-xs text-brand-light transition hover:text-white disabled:opacity-40"
+                  >
+                    Use filename
+                  </button>
+                </div>
                 <Input
                   id="upload-title"
                   value={title}
                   onChange={(event) => setTitle(event.target.value)}
-                  placeholder="Enter a title"
+                  placeholder={suggestedTitle || 'Enter a title'}
                   maxLength={180}
                   disabled={loading}
                 />

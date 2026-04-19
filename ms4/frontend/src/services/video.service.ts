@@ -67,3 +67,23 @@ export function deleteVideo(videoId: string) {
     method: 'DELETE',
   });
 }
+
+type VideoEventType = 'SEEK' | 'REPLAY' | 'SEARCH' | 'PAUSE' | 'PLAY';
+
+export function trackVideoEvent(
+  videoId: string,
+  payload: {
+    eventType: VideoEventType;
+    timestampSec: number;
+    queryText?: string;
+    sessionId?: string;
+  },
+) {
+  return apiRequest<{ videoId: string; eventType: VideoEventType; forwarded: boolean }>(
+    `/api/videos/${videoId}/events`,
+    {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    },
+  );
+}

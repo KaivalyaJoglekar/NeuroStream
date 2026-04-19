@@ -27,6 +27,8 @@ class Settings(BaseSettings):
     jwt_expires_in: str = Field(default="7d", alias="JWT_EXPIRES_IN")
 
     internal_api_key: str = Field(alias="INTERNAL_API_KEY")
+    ms5_base_url: str = Field(default="http://localhost:8085", alias="MS5_BASE_URL")
+    ms5_internal_secret: str = Field(default="", alias="MS5_INTERNAL_SECRET")
 
     cors_origin: str = Field(default="http://localhost:3000", alias="CORS_ORIGIN")
 

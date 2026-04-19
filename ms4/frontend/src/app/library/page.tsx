@@ -43,6 +43,7 @@ function LibraryView() {
   const [videos, setVideos] = useState<Video[]>([]);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [totalVideos, setTotalVideos] = useState(0);
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState<VideoStatus | ''>('');
   const [loading, setLoading] = useState(true);
@@ -54,7 +55,7 @@ function LibraryView() {
   const hasActive = useMemo(() => videos.some((video) => activeStatuses.has(video.status)), [videos]);
 
   const summary = useMemo(() => {
-    const total = videos.length;
+    const total = totalVideos;
     const processing = videos.filter((video) => activeStatuses.has(video.status)).length;
     const completed = videos.filter((video) => video.status === 'COMPLETED').length;
 
@@ -71,6 +72,7 @@ function LibraryView() {
     if (response.success) {
       setVideos(response.data);
       setTotalPages(response.pagination.totalPages);
+      setTotalVideos(response.pagination.total);
     }
     setLoading(false);
   }, [page, search, status]);
@@ -116,6 +118,8 @@ function LibraryView() {
     if (response.success) {
       pushToast({ title: 'Video deleted', type: 'success' });
       setDeleteVideoItem(null);
+      setVideos((current) => current.filter((item) => item.id !== deleteVideoItem.id));
+      setTotalVideos((current) => Math.max(current - 1, 0));
       await loadData();
       return;
     }
