@@ -7,7 +7,7 @@ This backend has been migrated from Express to FastAPI and is managed with `uv`.
 - Python 3.11+
 - `uv` installed
 - Docker services running (`postgres`, `redis`)
-- Backblaze B2 bucket + credentials (S3-compatible)
+- AWS S3 bucket + credentials (or any S3-compatible storage)
 
 ## Setup
 

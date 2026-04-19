@@ -2,8 +2,7 @@
 
 NeuroStream is a full-stack user workflow service for AI video processing.
 
-- Backend: FastAPI + SQLAlchemy + PostgreSQL + Redis + MinIO (S3-compatible)
-- Backend: FastAPI + SQLAlchemy + PostgreSQL + Redis + Backblaze B2 (S3-compatible)
+- Backend: FastAPI + SQLAlchemy + PostgreSQL + Redis + AWS S3 (or S3-compatible storage)
 - Frontend: Next.js 14 + TypeScript + Tailwind CSS + Framer Motion
 - Local infrastructure: Docker Compose
 
@@ -143,7 +142,6 @@ cd frontend && npm run build
 
 ## Troubleshooting
 
-- Upload URL failures usually indicate MinIO is not healthy or backend MinIO credentials mismatch.
 - Upload URL failures usually indicate object storage endpoint/credentials mismatch.
 - Frontend API failures usually indicate `NEXT_PUBLIC_API_BASE_URL` is incorrect or backend is not running.
 - DB connection errors usually indicate PostgreSQL is down or `DATABASE_URL` is wrong.
