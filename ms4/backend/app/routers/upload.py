@@ -1,4 +1,5 @@
 import uuid
+import logging
 from fastapi import APIRouter, Depends, HTTPException
 from botocore.exceptions import ClientError
 from sqlalchemy import func, select
@@ -16,6 +17,7 @@ from ..utils import generate_object_key
 from .helpers import ensure_subscription, increment_usage
 
 router = APIRouter(prefix="/api/upload", tags=["upload"])
+logger = logging.getLogger(__name__)
 
 
 @router.post("/initiate")
@@ -104,19 +106,7 @@ def complete_upload(
         )
     )
 
-    video.status = "QUEUED"
-    db.add(
-        WorkflowStatusLog(
-            video_id=video.id,
-            service_name="user-workflow-service",
-            status="QUEUED",
-            message="Processing job queued",
-        )
-    )
-
-    db.commit()
-
-    publish_processing_job(
+    queued = publish_processing_job(
         {
             "job_id": str(uuid.uuid4()),
             "video_id": str(video.id),
@@ -128,12 +118,46 @@ def complete_upload(
         }
     )
 
+    if queued:
+        video.status = "QUEUED"
+        db.add(
+            WorkflowStatusLog(
+                video_id=video.id,
+                service_name="user-workflow-service",
+                status="QUEUED",
+                message="Processing job queued",
+            )
+        )
+        db.commit()
+
+        return success_response(
+            {
+                "videoId": video.id,
+                "status": video.status,
+                "message": "Video registered and processing started.",
+            },
+            message="Upload completed and workflow started.",
+            status_code=201,
+        )
+
+    logger.warning("Upload completed but queue publish failed for video_id=%s", video.id)
+
+    db.add(
+        WorkflowStatusLog(
+            video_id=video.id,
+            service_name="user-workflow-service",
+            status="FAILED",
+            message="Processing queue unavailable; retry required",
+        )
+    )
+    db.commit()
+
     return success_response(
         {
             "videoId": video.id,
             "status": video.status,
-            "message": "Video registered and processing started.",
+            "message": "Upload completed, but processing queue is unavailable.",
         },
-        message="Upload completed and workflow started.",
-        status_code=201,
+        message="Upload completed. Processing did not start because queue is unavailable.",
+        status_code=202,
     )
