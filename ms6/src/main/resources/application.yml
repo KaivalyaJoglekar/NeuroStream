@@ -25,6 +25,13 @@ agent:
   research-max-iterations: ${RESEARCH_MAX_ITERATIONS:5}
   summarize-window-seconds: ${SUMMARIZE_WINDOW_SECONDS:300}
 
+spring:
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USER:guest}
+    password: ${RABBITMQ_PASS:guest}
+
 logging:
   level:
     com.example.MS6: DEBUG

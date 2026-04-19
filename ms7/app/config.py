@@ -7,6 +7,9 @@ class Settings(BaseSettings):
     aws_region: str = "us-east-1"
     s3_export_bucket: str = "neurostream-exports"
     presigned_url_expiry: int = 3600
+    rabbitmq_host: str = "localhost"
+    rabbitmq_user: str = "guest"
+    rabbitmq_pass: str = "guest"
     port: int = 8007
 
     class Config:

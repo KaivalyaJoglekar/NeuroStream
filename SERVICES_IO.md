@@ -136,6 +136,7 @@ These are the **host** ports exposed by the repo's compose files.
   - `/chat` → `{ answer, citations[], agent_trace }`
   - `/summarize` → `{ video_id, summary, chapters[], agent_trace }`
   - `/research` → `{ report, sources_used, videos_analyzed, iterations_taken, agent_trace }`
+- **RabbitMQ** (outbound) — namesake message sent to `pdf_export_queue` for MS7 PDF generation.
 - **Gemini API** (outbound) — REST calls per agent step (Analyzer, Synthesizer, CitationLinker, Planner, Summarizer)
 - **MS3** (outbound) — calls `/search` and `/video/{id}/context` to fetch ranked transcript chunks
 
@@ -165,6 +166,7 @@ Retriever (MS3 HTTP) → Analyzer (Gemini) → Synthesizer (Gemini) → Citation
 - **HTTP** `POST /api/v1/export/chat` — `title`, `question`, `answer`, `citations[]`
 - **HTTP** `POST /api/v1/export/summarize` — `video_id`, `title`, `summary`, `chapters[]`
 - **HTTP** `POST /api/v1/export/research` — `topic`, `title`, `report`, `sources_used`, `videos_analyzed`
+- **RabbitMQ** (inbound) — listens on local `pdf_export_queue` for fire-and-forget payload messages from MS6.
 
 ### Outputs
 - **AWS S3** (`neurostream-exports` bucket — separate from MS1/MS2 MinIO)
@@ -194,8 +196,9 @@ Retriever (MS3 HTTP) → Analyzer (Gemini) → Synthesizer (Gemini) → Citation
   - MS6 calls MS3 `/search` and `/video/{id}/context` to retrieve ranked transcript chunks for the agent pipeline.
 - **MS6 → Gemini API (HTTP, outbound)**
   - MS6 makes chained Gemini REST calls per agent step (Analyzer → Synthesizer → CitationLinker).
-- **MS6 → MS7 (via frontend/MS4)**
-  - The frontend or MS4 orchestrator passes MS6 JSON responses to MS7 for PDF export. MS7 does not call MS6 directly.
+- **MS6 → MS7 (HTTP or RabbitMQ)**
+  - The frontend or MS4 orchestrator passes MS6 JSON responses to MS7's HTTP endpoints for on-demand PDF export.
+  - Alternatively, MS6 publishes namesake messages directly to MS7 via the `pdf_export_queue` in RabbitMQ.
 - **MS7 → AWS S3 (HTTP)**
   - MS7 uploads generated PDFs to the dedicated `neurostream-exports` S3 bucket and returns a presigned URL.
 - **MS4 (not in this repo)**

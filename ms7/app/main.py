@@ -1,6 +1,9 @@
+import threading
+import uvicorn
 from fastapi import FastAPI
 from app.router import router
 from app.config import settings
+from app.rabbitmq_consumer import start_consumer
 
 app = FastAPI(
     title="NeuroStream MS7 — PDF Export",
@@ -9,6 +12,9 @@ app = FastAPI(
 )
 
 app.include_router(router)
+
+# Start RMQ consumer in background thread
+threading.Thread(target=start_consumer, daemon=True).start()
 
 
 @app.get("/health")
