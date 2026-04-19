@@ -24,7 +24,7 @@ spring:
     password: ${RABBITMQ_PASS:guest}
 
 ms3:
-  base-url: ${MS3_BASE_URL:http://localhost:8003}
+  base-url: ${MS3_BASE_URL:http://13.201.89.80:8003}
   default-limit: ${MS3_DEFAULT_LIMIT:5}
 
 gemini:

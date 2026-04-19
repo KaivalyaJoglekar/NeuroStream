@@ -59,7 +59,7 @@ func Load() (*Config, error) {
 		S3RawPrefix:        getEnv("S3_RAW_PREFIX", "raw-uploads"),
 		S3ProcessedPrefix:  getEnv("S3_PROCESSED_PREFIX", "processed"),
 		AudioFormat:        getEnv("AUDIO_FORMAT", "wav"),
-		MS4CallbackURL:     getEnv("MS4_CALLBACK_URL", "http://ms4-service:4000/internal/job-status"),
+		MS4CallbackURL:     getEnv("MS4_CALLBACK_URL", "https://neurostream-00qg.onrender.com/internal/job-status"),
 		InternalAPIKey:     getEnv("INTERNAL_API_KEY", "development-internal-key-123"),
 		TempDir:            getEnv("TEMP_DIR", "/tmp/neurostream"),
 		ServerPort:         getEnv("SERVER_PORT", "8081"),

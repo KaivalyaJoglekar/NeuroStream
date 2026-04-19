@@ -1,9 +1,9 @@
-export const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:4000';
+export const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'https://neurostream-00qg.onrender.com';
 export const MS1_BASE_URL = process.env.NEXT_PUBLIC_MS1_BASE_URL ?? 'http://localhost:8081';
-export const MS2_BASE_URL = process.env.NEXT_PUBLIC_MS2_BASE_URL ?? 'http://localhost:8002';
-export const MS3_BASE_URL = process.env.NEXT_PUBLIC_MS3_BASE_URL ?? 'http://localhost:8003';
-export const MS5_BASE_URL = process.env.NEXT_PUBLIC_MS5_BASE_URL ?? 'http://localhost:8085';
-export const MS6_BASE_URL = process.env.NEXT_PUBLIC_MS6_BASE_URL ?? 'http://localhost:8086';
-export const MS7_BASE_URL = process.env.NEXT_PUBLIC_MS7_BASE_URL ?? 'http://localhost:8007';
+export const MS2_BASE_URL = process.env.NEXT_PUBLIC_MS2_BASE_URL ?? 'http://13.201.89.80:8002';
+export const MS3_BASE_URL = process.env.NEXT_PUBLIC_MS3_BASE_URL ?? 'http://13.201.89.80:8003';
+export const MS5_BASE_URL = process.env.NEXT_PUBLIC_MS5_BASE_URL ?? 'https://neurostreamms5.onrender.com';
+export const MS6_BASE_URL = process.env.NEXT_PUBLIC_MS6_BASE_URL ?? 'https://neurostreamms6.onrender.com';
+export const MS7_BASE_URL = process.env.NEXT_PUBLIC_MS7_BASE_URL ?? 'https://neurostreamms7.onrender.com';
 export const TOKEN_KEY = 'neurostream_ms4_token';
 export const USER_KEY = 'neurostream_ms4_user';
