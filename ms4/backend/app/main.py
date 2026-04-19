@@ -73,6 +73,15 @@ def health_check():
     }
 
 
+@app.get("/")
+def root():
+    return {
+        "success": True,
+        "service": "ms4-user-workflow-service",
+        "message": "Service is running. Use /health for health checks.",
+    }
+
+
 app.include_router(auth_router)
 app.include_router(upload_router)
 app.include_router(videos_router)
