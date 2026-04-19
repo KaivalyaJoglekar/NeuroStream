@@ -1,0 +1,33 @@
+services:
+  ms1:
+    platform: linux/amd64
+    build: .
+    container_name: ms1-media-processor-local
+    env_file: .env
+    environment:
+      # Force local compose Redis instead of any remote REDIS_URL in .env.
+      REDIS_URL: redis://redis:6379
+    ports:
+      - "8081:8081"
+    volumes:
+      - /tmp/neurostream:/tmp/neurostream
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: ms1-redis-local
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    volumes:
+      - redis_data_local:/data
+
+volumes:
+  redis_data_local:
