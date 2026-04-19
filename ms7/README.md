@@ -39,6 +39,17 @@ pip install -r requirements.txt
 python run.py
 ```
 
+## Deploy on Render (Important)
+
+MS7 depends on `pydantic-core` wheels. If Render uses Python 3.14, it may try a Rust source build and fail.
+
+Use Python `3.11.x` for reliable builds:
+
+1. In Render service settings, set environment variable `PYTHON_VERSION=3.11.11`.
+2. Keep build command: `pip install -r requirements.txt`.
+3. Keep start command: `uvicorn app.main:app --host 0.0.0.0 --port $PORT`.
+4. If a previous failed build is cached, clear build cache and redeploy.
+
 ## Example Request
 
 ```json
