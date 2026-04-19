@@ -69,6 +69,7 @@ func (n *MS4Notifier) sendOnce(ctx context.Context, data []byte) error {
 	}
 
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("x-api-key", n.apiKey)
 	req.Header.Set("X-Internal-API-Key", n.apiKey)
 
 	resp, err := n.httpClient.Do(req)

@@ -5,16 +5,18 @@ from botocore.exceptions import ClientError
 from .config import settings
 
 
-def _build_endpoint_url() -> str:
+def _resolve_endpoint() -> tuple[str, bool]:
     endpoint = settings.b2_endpoint.strip().rstrip("/")
-    if endpoint.startswith("http://") or endpoint.startswith("https://"):
-        return endpoint
+    if endpoint.startswith("https://"):
+        return endpoint, True
+    if endpoint.startswith("http://"):
+        return endpoint, False
 
     endpoint_protocol = "https" if settings.b2_use_ssl else "http"
-    return f"{endpoint_protocol}://{endpoint}:{settings.b2_port}"
+    return f"{endpoint_protocol}://{endpoint}:{settings.b2_port}", settings.b2_use_ssl
 
 
-_endpoint_url = _build_endpoint_url()
+_endpoint_url, _use_ssl = _resolve_endpoint()
 
 s3_client = boto3.client(
     "s3",
@@ -22,8 +24,8 @@ s3_client = boto3.client(
     aws_access_key_id=settings.b2_key_id,
     aws_secret_access_key=settings.b2_application_key,
     region_name=settings.b2_region,
-    use_ssl=settings.b2_use_ssl,
-    verify=settings.b2_use_ssl,
+    use_ssl=_use_ssl,
+    verify=_use_ssl,
     config=Config(signature_version="s3v4"),
 )
 

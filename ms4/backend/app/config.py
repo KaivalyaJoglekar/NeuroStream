@@ -16,13 +16,28 @@ class Settings(BaseSettings):
     database_url: str = Field(alias="DATABASE_URL")
     redis_url: str = Field(default="redis://localhost:6379", alias="REDIS_URL")
 
-    b2_endpoint: str = Field(default="localhost", validation_alias=AliasChoices("B2_ENDPOINT", "MINIO_ENDPOINT"))
+    b2_endpoint: str = Field(
+        default="localhost",
+        validation_alias=AliasChoices("B2_ENDPOINT", "AWS_ENDPOINT_URL", "S3_ENDPOINT", "MINIO_ENDPOINT"),
+    )
     b2_port: int = Field(default=9000, validation_alias=AliasChoices("B2_PORT", "MINIO_PORT"))
     b2_use_ssl: bool = Field(default=False, validation_alias=AliasChoices("B2_USE_SSL", "MINIO_USE_SSL"))
-    b2_key_id: str = Field(validation_alias=AliasChoices("B2_KEY_ID", "MINIO_ACCESS_KEY"))
-    b2_application_key: str = Field(validation_alias=AliasChoices("B2_APPLICATION_KEY", "MINIO_SECRET_KEY"))
-    b2_bucket: str = Field(default="neurostream-videos", validation_alias=AliasChoices("B2_BUCKET", "MINIO_BUCKET"))
-    b2_region: str = Field(default="us-west-004", validation_alias=AliasChoices("B2_REGION"))
+    b2_key_id: str = Field(
+        validation_alias=AliasChoices("B2_KEY_ID", "S3_ACCESS_KEY_ID", "AWS_ACCESS_KEY_ID", "MINIO_ACCESS_KEY")
+    )
+    b2_application_key: str = Field(
+        validation_alias=AliasChoices(
+            "B2_APPLICATION_KEY",
+            "S3_SECRET_ACCESS_KEY",
+            "AWS_SECRET_ACCESS_KEY",
+            "MINIO_SECRET_KEY",
+        )
+    )
+    b2_bucket: str = Field(
+        default="neurostream-videos",
+        validation_alias=AliasChoices("B2_BUCKET", "AWS_S3_BUCKET", "S3_BUCKET_NAME", "MINIO_BUCKET"),
+    )
+    b2_region: str = Field(default="us-west-004", validation_alias=AliasChoices("B2_REGION", "S3_REGION", "AWS_REGION"))
 
     jwt_secret: str = Field(alias="JWT_SECRET")
     jwt_expires_in: str = Field(default="7d", alias="JWT_EXPIRES_IN")

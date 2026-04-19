@@ -12,6 +12,14 @@ def _get_bool(name: str, default: bool) -> bool:
     return value.strip().lower() in {"1", "true", "yes", "on"}
 
 
+def _get_first_env(names: list[str], default: str = "") -> str:
+    for name in names:
+        value = os.getenv(name)
+        if value is not None:
+            return value
+    return default
+
+
 @dataclass(slots=True)
 class Settings:
     service_name: str
@@ -36,9 +44,9 @@ def get_settings() -> Settings:
     return Settings(
         service_name=os.getenv("MS2_SERVICE_NAME", "neurostream-ms2"),
         redis_url=os.getenv("REDIS_URL", ""),
-        aws_access_key_id=os.getenv("AWS_ACCESS_KEY_ID", ""),
-        aws_secret_access_key=os.getenv("AWS_SECRET_ACCESS_KEY", ""),
-        s3_bucket_name=os.getenv("S3_BUCKET_NAME", ""),
+        aws_access_key_id=_get_first_env(["AWS_ACCESS_KEY_ID", "S3_ACCESS_KEY_ID"], ""),
+        aws_secret_access_key=_get_first_env(["AWS_SECRET_ACCESS_KEY", "S3_SECRET_ACCESS_KEY"], ""),
+        s3_bucket_name=_get_first_env(["S3_BUCKET_NAME", "AWS_S3_BUCKET"], ""),
         gemini_api_key=os.getenv("GEMINI_API_KEY", ""),
         gemini_vision_model=os.getenv("GEMINI_VISION_MODEL", ""),
         gemini_embedding_model=os.getenv(

@@ -44,7 +44,7 @@ MS1 is designed for **high-concurrency** — multiple videos must be processed i
 | 5 | **Frame Sampling** | Sample keyframes from each chunk at a defined FPS (e.g., 1 frame/sec) as `.jpg` images for MS2's vision analysis. |
 | 6 | **Transcoding** | Normalize video codec/resolution if needed (e.g., to H.264/720p) for consistent downstream processing. |
 | 7 | **S3 Upload** | Upload all processed artifacts (chunks, audio files, frames) to a structured path in S3. |
-| 8 | **Status Callback** | POST a completion (or failure) status update back to MS4's internal callback endpoint. |
+| 8 | **Status Callback** | PATCH a completion (or failure) status update back to MS4's internal callback endpoint. |
 
 ---
 
@@ -89,7 +89,7 @@ MS1 is designed for **high-concurrency** — multiple videos must be processed i
 | Media Processing | FFmpeg (via `os/exec`) | Chunking, audio extraction, frame sampling |
 | Job Queue Consumer | Redis (`go-redis/v9`) | Consuming `BRPOP`-based job queue |
 | Object Storage | AWS S3 (`aws-sdk-go-v2`) | Download inputs, upload outputs |
-| HTTP Client | Go `net/http` | Callback POSTs to MS4 |
+| HTTP Client | Go `net/http` | Callback PATCHes to MS4 |
 | Config | `godotenv` / ENV vars | Environment-based configuration |
 | Containerization | Docker + FFmpeg base image | Deployment |
 
@@ -157,7 +157,7 @@ AUDIO_FORMAT=wav
 WORKER_COUNT=5
 
 # MS4 Callback
-MS4_CALLBACK_URL=http://ms4-service:3000/internal/callbacks/media-complete
+MS4_CALLBACK_URL=http://ms4-service:4000/internal/job-status
 
 # Temp Storage (local disk for processing)
 TEMP_DIR=/tmp/neurostream
@@ -338,9 +338,9 @@ s3://neurostream-media/processed/{video_id}/
 
 ## Status Callback Contract
 
-After processing (success or failure), MS1 POSTs to MS4's callback URL:
+After processing (success or failure), MS1 PATCHes MS4's callback URL:
 
-**Endpoint:** `POST {MS4_CALLBACK_URL}`
+**Endpoint:** `PATCH {MS4_CALLBACK_URL}`
 
 **Headers:**
 ```

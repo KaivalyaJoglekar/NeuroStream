@@ -39,8 +39,12 @@ def get_current_user(
     return user
 
 
-def verify_internal_api_key(x_api_key: str | None = Header(default=None, alias="x-api-key")) -> None:
-    if not x_api_key or x_api_key != settings.internal_api_key:
+def verify_internal_api_key(
+    x_api_key: str | None = Header(default=None, alias="x-api-key"),
+    x_internal_api_key: str | None = Header(default=None, alias="x-internal-api-key"),
+) -> None:
+    provided_key = x_api_key or x_internal_api_key
+    if not provided_key or provided_key != settings.internal_api_key:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Invalid or missing internal API key.",
