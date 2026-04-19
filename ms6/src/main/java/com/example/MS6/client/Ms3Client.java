@@ -6,6 +6,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.stereotype.Component;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClient;
 
 import java.util.List;
@@ -44,15 +45,20 @@ public class Ms3Client {
     /** Fetch RAG-ready context blocks for a single video, optionally ranked by query. */
     public Ms3Types.ContextResponse getContext(String videoId, String query, int limit) {
         log.debug("MS3 /video/{}/context query='{}' limit={}", videoId, query, limit);
-        return restClient.get()
-                .uri(uriBuilder -> {
-                    uriBuilder.path("/video/{videoId}/context");
-                    if (query != null) uriBuilder.queryParam("query", query);
-                    uriBuilder.queryParam("limit", limit);
-                    return uriBuilder.build(videoId);
-                })
-                .retrieve()
-                .body(Ms3Types.ContextResponse.class);
+        try {
+            return restClient.get()
+                    .uri(uriBuilder -> {
+                        uriBuilder.path("/video/{videoId}/context");
+                        if (query != null) uriBuilder.queryParam("query", query);
+                        uriBuilder.queryParam("limit", limit);
+                        return uriBuilder.build(videoId);
+                    })
+                    .retrieve()
+                    .body(Ms3Types.ContextResponse.class);
+        } catch (HttpClientErrorException.NotFound e) {
+            log.warn("MS3 returned 404 for video={} — no matching context blocks", videoId);
+            return new Ms3Types.ContextResponse(videoId, List.of(), "none");
+        }
     }
 
     /** Fetch the full ordered transcript for a video. */

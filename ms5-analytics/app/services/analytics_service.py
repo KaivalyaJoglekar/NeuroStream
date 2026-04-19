@@ -1,11 +1,9 @@
 import logging
 from collections import Counter, defaultdict
 from datetime import datetime, timezone
-from typing import Optional
 
-from sqlalchemy import select, text
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.dialects.postgresql import insert as pg_insert
 
 from app.models.db_models import UserVideoEvent, UserVideoAnalytics
 from app.models.schemas import (
@@ -14,7 +12,6 @@ from app.models.schemas import (
     RevisitedSegment,
     QueryEntry,
 )
-from app.services.cache_service import CacheService
 from app.services.highlight_service import generate_smart_highlights
 from app.utils.time_utils import bucket_timestamp, merge_adjacent_buckets
 from app.config import get_settings
@@ -37,27 +34,34 @@ async def get_analytics(
     db: AsyncSession,
     user_id: str,
     video_id: str,
-    cache: CacheService,
 ) -> AnalyticsResponse:
     """Retrieves or computes analytics for a user-video pair.
 
-    1. Check Redis cache first.
-    2. If cache miss, compute from PostgreSQL.
-    3. Cache the result and upsert to user_video_analytics table.
+    Checks the analytics table first, otherwise computes from raw events.
     """
-    # Check cache
-    cached = await cache.get_analytics(user_id, video_id)
-    if cached:
-        return AnalyticsResponse(**cached)
+    # Check for existing computed analytics
+    existing = await db.execute(
+        select(UserVideoAnalytics).where(
+            UserVideoAnalytics.user_id == user_id,
+            UserVideoAnalytics.video_id == video_id,
+        )
+    )
+    record = existing.scalar_one_or_none()
+    if record and record.last_computed_at:
+        return AnalyticsResponse(
+            user_id=user_id,
+            video_id=video_id,
+            important_sections=[ImportantSection(**s) for s in (record.important_timestamps or [])],
+            smart_highlights=record.smart_highlights or [],
+            query_history=[QueryEntry(**q) for q in (record.query_history or [])],
+            revisited_segments=[RevisitedSegment(**r) for r in (record.revisited_segments or [])],
+            last_computed_at=record.last_computed_at,
+        )
 
-    # Compute from database
+    # Compute fresh from raw events
     analytics = await compute_analytics(db, user_id, video_id)
 
-    # Cache the result
-    analytics_dict = analytics.model_dump(mode="json")
-    await cache.set_analytics(user_id, video_id, analytics_dict)
-
-    # Upsert to analytics table
+    # Store the computed result
     await upsert_analytics(db, user_id, video_id, analytics)
 
     return analytics
@@ -67,7 +71,6 @@ async def compute_analytics(
     db: AsyncSession, user_id: str, video_id: str
 ) -> AnalyticsResponse:
     """Computes analytics by querying all events for a user-video pair."""
-    # Fetch all events
     result = await db.execute(
         select(UserVideoEvent)
         .where(
@@ -122,7 +125,6 @@ async def compute_analytics(
     for rank, section in enumerate(
         sections[: settings.IMPORTANT_SECTIONS_COUNT], start=1
     ):
-        # Determine label based on signals
         label = _generate_section_label(section, bucket_events, bucket_size)
         important_sections.append(
             ImportantSection(
@@ -165,18 +167,10 @@ async def compute_analytics(
 
 
 async def recompute_analytics(
-    db: AsyncSession, user_id: str, video_id: str, cache: CacheService
+    db: AsyncSession, user_id: str, video_id: str
 ) -> None:
-    """Force recomputes analytics: invalidates cache, recomputes, and stores."""
-    await cache.invalidate_analytics(user_id, video_id)
-
+    """Force recomputes analytics: recomputes from raw events and stores."""
     analytics = await compute_analytics(db, user_id, video_id)
-
-    # Cache
-    analytics_dict = analytics.model_dump(mode="json")
-    await cache.set_analytics(user_id, video_id, analytics_dict)
-
-    # Upsert
     await upsert_analytics(db, user_id, video_id, analytics)
 
 
@@ -186,31 +180,36 @@ async def upsert_analytics(
     video_id: str,
     analytics: AnalyticsResponse,
 ) -> None:
-    """Upserts computed analytics into the user_video_analytics table."""
+    """Upserts computed analytics into the user_video_analytics table.
+
+    Uses a portable SELECT-then-INSERT/UPDATE pattern instead of
+    PostgreSQL-specific ON CONFLICT, so this works on SQLite too.
+    """
     now = datetime.now(timezone.utc)
+    data = {
+        "important_timestamps": [s.model_dump(mode="json") for s in analytics.important_sections],
+        "smart_highlights": [h.model_dump(mode="json") for h in analytics.smart_highlights],
+        "query_history": [q.model_dump(mode="json") for q in analytics.query_history],
+        "revisited_segments": [r.model_dump(mode="json") for r in analytics.revisited_segments],
+        "last_computed_at": now,
+        "updated_at": now,
+    }
 
-    stmt = pg_insert(UserVideoAnalytics).values(
-        user_id=user_id,
-        video_id=video_id,
-        important_timestamps=[s.model_dump(mode="json") for s in analytics.important_sections],
-        smart_highlights=[h.model_dump(mode="json") for h in analytics.smart_highlights],
-        query_history=[q.model_dump(mode="json") for q in analytics.query_history],
-        revisited_segments=[r.model_dump(mode="json") for r in analytics.revisited_segments],
-        last_computed_at=now,
-        updated_at=now,
-    ).on_conflict_do_update(
-        index_elements=["user_id", "video_id"],
-        set_={
-            "important_timestamps": [s.model_dump(mode="json") for s in analytics.important_sections],
-            "smart_highlights": [h.model_dump(mode="json") for h in analytics.smart_highlights],
-            "query_history": [q.model_dump(mode="json") for q in analytics.query_history],
-            "revisited_segments": [r.model_dump(mode="json") for r in analytics.revisited_segments],
-            "last_computed_at": now,
-            "updated_at": now,
-        },
+    existing = await db.execute(
+        select(UserVideoAnalytics).where(
+            UserVideoAnalytics.user_id == user_id,
+            UserVideoAnalytics.video_id == video_id,
+        )
     )
+    record = existing.scalar_one_or_none()
 
-    await db.execute(stmt)
+    if record:
+        for key, value in data.items():
+            setattr(record, key, value)
+    else:
+        record = UserVideoAnalytics(user_id=user_id, video_id=video_id, **data)
+        db.add(record)
+
     await db.flush()
     logger.info(f"Upserted analytics for user={user_id} video={video_id}")
 
@@ -254,7 +253,6 @@ def _generate_section_label(
     section: dict, bucket_events: dict, bucket_size: int
 ) -> str:
     """Generates a human-readable label for a section based on its signals."""
-    # Collect all events in this section's buckets
     start = section["start_sec"]
     end = section["end_sec"]
     search_queries = []
@@ -266,7 +264,6 @@ def _generate_section_label(
                     search_queries.append(event.query_text)
 
     if search_queries:
-        # Use the most common search query as the label
         most_common = Counter(search_queries).most_common(1)[0][0]
         return most_common.capitalize()
 

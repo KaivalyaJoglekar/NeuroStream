@@ -4,10 +4,11 @@ from app.config import get_settings
 
 settings = get_settings()
 
-# Engine kwargs differ between postgres and sqlite backends
 _engine_kwargs = {
     "echo": (settings.APP_ENV == "development"),
 }
+
+# Only apply pool settings for PostgreSQL — SQLite doesn't support them
 if settings.DATABASE_URL.startswith("postgresql"):
     _engine_kwargs.update({
         "pool_size": 20,

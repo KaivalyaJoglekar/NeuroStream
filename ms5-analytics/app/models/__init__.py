@@ -1,5 +1,5 @@
 # MS5 Analytics - Models package
-from app.models.db_models import UserVideoEvent, UserVideoAnalytics, Video, VideoChunk
+from app.models.db_models import UserVideoEvent, UserVideoAnalytics
 from app.models.schemas import (
     EventType,
     UserEventRequest,
@@ -18,8 +18,6 @@ from app.models.schemas import (
 __all__ = [
     "UserVideoEvent",
     "UserVideoAnalytics",
-    "Video",
-    "VideoChunk",
     "EventType",
     "UserEventRequest",
     "UserEventResponse",

@@ -20,6 +20,7 @@ router = APIRouter(prefix="/internal", tags=["internal"])
 @router.patch("/job-status", dependencies=[Depends(verify_internal_api_key)])
 def update_status(
     payload: StatusCallbackRequest,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
 ):
     if payload.newStatus not in VIDEO_STATUSES:
@@ -56,7 +57,7 @@ def update_status(
     db.commit()
 
     if payload.newStatus == "MEDIA_PROCESSED" and payload.metadata:
-        trigger_ms2_processing(video, payload.metadata)
+        background_tasks.add_task(trigger_ms2_processing, video, payload.metadata)
 
     return success_response(
         {
