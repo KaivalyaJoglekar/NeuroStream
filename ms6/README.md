@@ -46,6 +46,35 @@ cp .env.example .env
 ./mvnw spring-boot:run
 ```
 
+## Run with Docker
+
+```bash
+cd ms6
+docker build -t neurostream-ms6 .
+docker run --rm -p 8086:8086 \
+	-e GEMINI_API_KEY=your-key \
+	-e MS3_BASE_URL=http://host.docker.internal:8003 \
+	neurostream-ms6
+```
+
+The service binds to `PORT` when provided (Render-compatible), with local fallback `8086`.
+
+## Deploy on Render (Docker)
+
+1. Create a **Web Service** on Render and choose your repository.
+2. Set **Root Directory** to `ms6`.
+3. Select **Environment = Docker**.
+4. Keep auto-detected Dockerfile (`ms6/Dockerfile`).
+5. Set environment variables:
+	 - `GEMINI_API_KEY` (required)
+	 - `MS3_BASE_URL` (required, deployed MS3 URL)
+	 - `GEMINI_MODEL` (optional)
+	 - `GEMINI_MAX_TOKENS` (optional)
+	 - `RESEARCH_MAX_ITERATIONS` (optional)
+	 - `SUMMARIZE_WINDOW_SECONDS` (optional)
+	 - `RABBITMQ_HOST`, `RABBITMQ_PORT`, `RABBITMQ_USER`, `RABBITMQ_PASS` (optional)
+6. Set health check path to `/health`.
+
 ## Environment
 
 See [.env.example](.env.example) for all configurable variables.
