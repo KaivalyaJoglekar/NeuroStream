@@ -29,9 +29,15 @@ async def lifespan(_app: FastAPI):
 
 app = FastAPI(title="NeuroStream MS4 User Workflow Service", lifespan=lifespan)
 
+allowed_origins = [
+    origin.strip().rstrip("/")
+    for origin in settings.cors_origin.split(",")
+    if origin.strip()
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[settings.cors_origin],
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
