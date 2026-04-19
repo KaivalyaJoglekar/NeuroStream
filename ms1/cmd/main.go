@@ -99,9 +99,21 @@ func startHealthServer(port string, pool *worker.Pool) {
 		json.NewEncoder(w).Encode(resp)
 	})
 
+	// Allow cross-origin browser access for health checks.
+	corsHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "GET,POST,PUT,PATCH,DELETE,OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "*")
+		if r.Method == http.MethodOptions {
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+		mux.ServeHTTP(w, r)
+	})
+
 	addr := fmt.Sprintf(":%s", port)
 	log.Printf("[health] HTTP server listening on %s", addr)
-	if err := http.ListenAndServe(addr, mux); err != nil {
+	if err := http.ListenAndServe(addr, corsHandler); err != nil {
 		log.Printf("[health] HTTP server error: %v", err)
 	}
 }
