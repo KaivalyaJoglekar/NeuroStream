@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     rabbitmq_host: str = "localhost"
     rabbitmq_user: str = "guest"
     rabbitmq_pass: str = "guest"
+    enable_rabbitmq_consumer: bool = False
     port: int = 8007
 
     class Config:

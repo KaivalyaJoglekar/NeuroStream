@@ -6,6 +6,7 @@ from pydantic import ValidationError
 from app.schemas import ChatExportRequest, SummarizeExportRequest, ResearchExportRequest
 from app.pdf_service import build_chat_pdf, build_summarize_pdf, build_research_pdf
 from app.s3_service import upload_pdf
+from app.config import settings
 
 log = logging.getLogger(__name__)
 

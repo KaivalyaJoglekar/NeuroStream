@@ -12,6 +12,7 @@ import { VideoDetails, VideoStatus } from '../../../types/domain';
 import { Card } from '../../../components/ui/card';
 import { StatusBadge } from '../../../components/ui/status-badge';
 import { bytesToSize, formatDate } from '../../../utils/format';
+import { CognitivePanel } from '../../../components/video/cognitive-panel';
 
 const finalStatuses = new Set(['COMPLETED', 'FAILED', 'DELETED']);
 
@@ -108,6 +109,14 @@ function VideoDetailsView({ videoId }: { videoId: string }) {
     });
   };
 
+  const jumpToTime = (timeSec: number) => {
+    const videoEl = document.querySelector('video');
+    if (videoEl) {
+       videoEl.currentTime = timeSec;
+       videoEl.play().catch(e => console.log('Autoplay prevented', e));
+    }
+  };
+
   return (
     <div className="space-y-5">
       <Link href="/library" className="inline-flex items-center text-sm text-accent hover:underline">
@@ -115,69 +124,81 @@ function VideoDetailsView({ videoId }: { videoId: string }) {
         Back to library
       </Link>
 
-      <Card>
-        {video.fileUrl && (
-          <div className="mb-6 overflow-hidden rounded-xl bg-black/40 ring-1 ring-white/10 shadow-2xl">
-            <video
-              src={video.fileUrl}
-              controls
-              className="w-full max-h-[60vh] object-contain"
-              controlsList="nodownload"
-              onPlay={(event) => {
-                const now = event.currentTarget.currentTime;
-                lastPlaybackTimeRef.current = now;
-                sendEvent('PLAY', now);
-              }}
-              onPause={(event) => {
-                const now = event.currentTarget.currentTime;
-                lastPlaybackTimeRef.current = now;
-                sendEvent('PAUSE', now);
-              }}
-              onTimeUpdate={(event) => {
-                lastPlaybackTimeRef.current = event.currentTarget.currentTime;
-              }}
-              onSeeked={(event) => {
-                const now = event.currentTarget.currentTime;
-                const eventType = now + 1 < lastPlaybackTimeRef.current ? 'REPLAY' : 'SEEK';
-                sendEvent(eventType, now);
-                lastPlaybackTimeRef.current = now;
-              }}
-            />
-          </div>
-        )}
-
-        <div className="mb-4 flex items-start justify-between">
-          <div>
-            <h2 className="font-display text-2xl">{video.title}</h2>
-            <p className="mt-1 text-sm text-textMuted">{video.description || 'No description provided'}</p>
-          </div>
-          <StatusBadge status={video.status} />
-        </div>
-
-        <WorkflowProgress status={video.status} />
-
-        <div className="mt-5 grid gap-3 md:grid-cols-3">
-          <MetaItem label="Size" value={bytesToSize(video.fileSize)} icon={FileText} />
-          <MetaItem label="Created" value={formatDate(video.createdAt)} icon={Clock3} />
-          <MetaItem label="Updated" value={formatDate(video.updatedAt)} icon={Clock3} />
-        </div>
-      </Card>
-
-      <Card>
-        <h3 className="font-display text-lg">Workflow event timeline</h3>
-        <div className="mt-4 space-y-3">
-          {video.workflowLogs.map((log) => (
-            <div key={log.id} className="rounded-xl border border-stroke/80 bg-elevated/70 p-3">
-              <div className="mb-1 flex items-center justify-between">
-                <p className="text-sm font-semibold">{log.serviceName}</p>
-                <StatusBadge status={log.status} />
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 items-start">
+        {/* Left Column: Video & Metadata */}
+        <div className="lg:col-span-2 space-y-5">
+          <Card>
+            {video.fileUrl && (
+              <div className="mb-6 overflow-hidden rounded-xl bg-black/40 ring-1 ring-white/10 shadow-2xl">
+                <video
+                  src={video.fileUrl}
+                  controls
+                  className="w-full max-h-[60vh] object-contain"
+                  controlsList="nodownload"
+                  onPlay={(event) => {
+                    const now = event.currentTarget.currentTime;
+                    lastPlaybackTimeRef.current = now;
+                    sendEvent('PLAY', now);
+                  }}
+                  onPause={(event) => {
+                    const now = event.currentTarget.currentTime;
+                    lastPlaybackTimeRef.current = now;
+                    sendEvent('PAUSE', now);
+                  }}
+                  onTimeUpdate={(event) => {
+                    lastPlaybackTimeRef.current = event.currentTarget.currentTime;
+                  }}
+                  onSeeked={(event) => {
+                    const now = event.currentTarget.currentTime;
+                    const eventType = now + 1 < lastPlaybackTimeRef.current ? 'REPLAY' : 'SEEK';
+                    sendEvent(eventType, now);
+                    lastPlaybackTimeRef.current = now;
+                  }}
+                />
               </div>
-              <p className="text-sm text-textMuted">{log.message || 'No message'}</p>
-              <p className="mt-1 text-xs text-textMuted/80">{formatDate(log.createdAt)}</p>
+            )}
+
+            <div className="mb-4 flex items-start justify-between">
+              <div>
+                <h2 className="font-display text-2xl">{video.title}</h2>
+                <p className="mt-1 text-sm text-textMuted">{video.description || 'No description provided'}</p>
+              </div>
+              <StatusBadge status={video.status} />
             </div>
-          ))}
+
+            <WorkflowProgress status={video.status} />
+
+            <div className="mt-5 grid gap-3 md:grid-cols-3">
+              <MetaItem label="Size" value={bytesToSize(video.fileSize)} icon={FileText} />
+              <MetaItem label="Created" value={formatDate(video.createdAt)} icon={Clock3} />
+              <MetaItem label="Updated" value={formatDate(video.updatedAt)} icon={Clock3} />
+            </div>
+          </Card>
+
+          <Card>
+            <h3 className="font-display text-lg">Workflow event timeline</h3>
+            <div className="mt-4 space-y-3">
+              {video.workflowLogs.map((log) => (
+                <div key={log.id} className="rounded-xl border border-stroke/80 bg-elevated/70 p-3">
+                  <div className="mb-1 flex items-center justify-between">
+                    <p className="text-sm font-semibold">{log.serviceName}</p>
+                    <StatusBadge status={log.status} />
+                  </div>
+                  <p className="text-sm text-textMuted">{log.message || 'No message'}</p>
+                  <p className="mt-1 text-xs text-textMuted/80">{formatDate(log.createdAt)}</p>
+                </div>
+              ))}
+            </div>
+          </Card>
         </div>
-      </Card>
+
+        {/* Right Column: Cognitive Panel (MS2, MS3, MS6, MS7) */}
+        <div className="lg:col-span-1 h-full">
+            <div className="sticky top-6">
+                <CognitivePanel videoId={videoId} onJumpToTime={jumpToTime} />
+            </div>
+        </div>
+      </div>
     </div>
   );
 }

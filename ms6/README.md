@@ -55,3 +55,11 @@ See [.env.example](.env.example) for all configurable variables.
 | `GEMINI_API_KEY` | Yes | — |
 | `MS3_BASE_URL` | No | `http://localhost:8003` |
 | `GEMINI_MODEL` | No | `gemini-2.5-flash` |
+| `AWS_REGION` | No | `us-east-1` |
+| `AWS_ENDPOINT` | No | — |
+| `AWS_BUCKET_NAME` | No | — |
+| `AWS_ACCESS_KEY` | No | — |
+| `AWS_SECRET_KEY` | No | — |
+| `AWS_S3_PATH_STYLE` | No | `true` |
+
+These S3-compatible variables are intended for Backblaze/Filebase-style object storage integration.

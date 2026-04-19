@@ -1,0 +1,81 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import { getTranscripts, TranscriptSegment } from '../../services/cognitive.service';
+import { useToast } from '../../hooks/use-toast';
+import { Loader2, FileText, Play } from 'lucide-react';
+
+interface VideoTranscriptsProps {
+  videoId: string;
+  onJumpToTime: (timeSec: number) => void;
+}
+
+export function VideoTranscripts({ videoId, onJumpToTime }: VideoTranscriptsProps) {
+  const [transcripts, setTranscripts] = useState<TranscriptSegment[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    let mounted = true;
+    const fetchTS = async () => {
+      try {
+        const res = await getTranscripts(videoId);
+        if (mounted && res.success && res.data) {
+          setTranscripts(res.data);
+        } else if (mounted) {
+          toast({ title: 'Transcripts unavailable', message: res.error ?? 'MS3 transcript chunks are not available yet.' });
+        }
+      } catch {
+        if (mounted) toast({ title: 'Error', message: 'Failed to load transcript chunks from MS3.' });
+      } finally {
+        if (mounted) setIsLoading(false);
+      }
+    };
+    void fetchTS();
+    return () => { mounted = false; };
+  }, [videoId, toast]);
+
+  const formatTime = (sec: number) => {
+      const m = Math.floor(sec / 60);
+      const s = Math.floor(sec % 60);
+      return `${m}:${s.toString().padStart(2, '0')}`;
+  };
+
+  if (isLoading) {
+      return (
+          <div className="flex flex-col items-center justify-center h-[500px] text-textMuted gap-3">
+              <Loader2 className="w-6 h-6 animate-spin" />
+              <p className="text-sm">Loading transcript chunks from MS3...</p>
+          </div>
+      );
+  }
+
+  if (transcripts.length === 0) {
+      return (
+        <div className="flex flex-col items-center justify-center h-[500px] text-textMuted gap-3">
+            <FileText className="w-8 h-8 opacity-50" />
+          <p className="text-sm text-center px-6">Transcripts are not available yet.<br/>Ensure indexing through MS2 and MS3 is completed.</p>
+        </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col h-[500px] overflow-y-auto p-4 space-y-2">
+      {transcripts.map((ts) => (
+         <div 
+            key={ts.id} 
+            className="group flex gap-3 p-2 rounded hover:bg-elevated/50 transition-colors cursor-pointer"
+            onClick={() => onJumpToTime(ts.startSec)}
+         >
+             <div className="w-12 shrink-0 text-xs text-accent mt-0.5 group-hover:underline flex items-center gap-1">
+                 <Play className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                 {formatTime(ts.startSec)}
+             </div>
+             <p className="text-sm text-textPrimary leading-relaxed">
+                 {ts.text}
+             </p>
+         </div>
+      ))}
+    </div>
+  );
+}

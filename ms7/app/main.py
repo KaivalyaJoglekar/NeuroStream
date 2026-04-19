@@ -13,8 +13,9 @@ app = FastAPI(
 
 app.include_router(router)
 
-# Start RMQ consumer in background thread
-threading.Thread(target=start_consumer, daemon=True).start()
+# Optional RMQ consumer (kept disabled by default for minimal deployments)
+if settings.enable_rabbitmq_consumer:
+    threading.Thread(target=start_consumer, daemon=True).start()
 
 
 @app.get("/health")

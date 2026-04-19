@@ -6,6 +6,17 @@ spring:
     name: neurostream-ms6
   jackson:
     property-naming-strategy: SNAKE_CASE
+  cloud:
+    aws:
+      region:
+        static: ${AWS_REGION:us-east-1}
+      s3:
+        endpoint: ${AWS_ENDPOINT:}
+        bucket: ${AWS_BUCKET_NAME:}
+        path-style-access-enabled: ${AWS_S3_PATH_STYLE:true}
+      credentials:
+        access-key: ${AWS_ACCESS_KEY:}
+        secret-key: ${AWS_SECRET_KEY:}
   rabbitmq:
     host: ${RABBITMQ_HOST:localhost}
     port: ${RABBITMQ_PORT:5672}
