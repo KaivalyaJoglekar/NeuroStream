@@ -1,9 +1,13 @@
 import boto3
+import logging
 from botocore.client import Config
 from botocore.exceptions import ClientError
 from urllib.parse import urlparse
 
 from .config import settings
+
+
+logger = logging.getLogger(__name__)
 
 
 def _resolve_endpoint() -> tuple[str, bool]:
@@ -60,10 +64,20 @@ def ensure_bucket() -> None:
             s3_client.create_bucket(Bucket=settings.s3_bucket)
             return
 
-        raise RuntimeError(
-            f"Storage bucket '{settings.s3_bucket}' is not accessible. "
-            "Create the bucket first and verify S3 credentials/endpoints."
-        ) from exc
+        error_code = "unknown"
+        error_message = str(exc)
+        if hasattr(exc, "response"):
+            error_data = exc.response.get("Error", {})
+            error_code = error_data.get("Code", error_code)
+            error_message = error_data.get("Message", error_message)
+
+        logger.warning(
+            "S3 startup validation failed for bucket '%s' (code=%s, message=%s). "
+            "Service will continue to start; verify bucket name, region, and IAM permissions.",
+            settings.s3_bucket,
+            error_code,
+            error_message,
+        )
 
 
 def generate_presigned_put_url(object_key: str, content_type: str, expires: int = 900) -> str:
