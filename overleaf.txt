@@ -10,62 +10,34 @@
 
 \title{NeuroStream: A Scalable Polyglot Microservices Architecture for High Performance Conversational Video Intelligence}
 
-\author{
-  \makebox[\linewidth]{
-    \begin{minipage}{0.32\linewidth}
-      \centering
-      \IEEEauthorblockN{Akshay Kripalani}\\[0.1cm]
-      \IEEEauthorblockA{\textit{Dept. of Computer Eng.} \\
-      \textit{SVKM’s NMIMS Mukesh} \\
-      \textit{Patel School of Tech.} \\
-      \textit{Management \& Eng.} \\
-      Mumbai, India \\
-      TO BE CHANGED@nmims.in}
-    \end{minipage}\hfill
-    \begin{minipage}{0.32\linewidth}
-      \centering
-      \IEEEauthorblockN{Aranck Jomraj}\\[0.1cm]
-      \IEEEauthorblockA{\textit{Dept. of Computer Eng.} \\
-      \textit{SVKM’s NMIMS Mukesh} \\
-      \textit{Patel School of Tech.} \\
-      \textit{Management \& Eng.} \\
-      Mumbai, India \\
-      aranck.jomraj01@nmims.in}
-    \end{minipage}\hfill
-    \begin{minipage}{0.32\linewidth}
-      \centering
-      \IEEEauthorblockN{Moksh Jain}\\[0.1cm]
-      \IEEEauthorblockA{\textit{Dept. of Computer Eng.} \\
-      \textit{SVKM’s NMIMS Mukesh} \\
-      \textit{Patel School of Tech.} \\
-      \textit{Management \& Eng.} \\
-      Mumbai, India \\
-      moksh.jain81@nmims.in}
-    \end{minipage}
-  }
-  \vspace{0.8cm} \\
-  \makebox[\linewidth]{
-    \begin{minipage}{0.32\linewidth}
-      \centering
-      \IEEEauthorblockN{[Author 4 Placeholder]}\\[0.1cm]
-      \IEEEauthorblockA{\textit{Dept. Placeholder} \\
-      \textit{Institution Placeholder} \\
-      \textit{Additional Info} \\
-      \textit{Extra Info} \\
-      City, Country \\
-      email4@example.com}
-    \end{minipage}\hspace{1.5cm}
-    \begin{minipage}{0.32\linewidth}
-      \centering
-      \IEEEauthorblockN{[Author 5 Placeholder]}\\[0.1cm]
-      \IEEEauthorblockA{\textit{Dept. Placeholder} \\
-      \textit{Institution Placeholder} \\
-      \textit{Additional Info} \\
-      \textit{Extra Info} \\
-      City, Country \\
-      email5@example.com}
-    \end{minipage}
-  }
+\author{%
+\IEEEauthorblockN{Akshay Kripalani}
+\IEEEauthorblockA{\textit{Dept. of Computer Eng.}\\
+\textit{SVKM's NMIMS Mukesh}\\
+\textit{Patel School of Tech., Mgmt. \& Eng.}\\
+Mumbai, India\\
+TO BE CHANGED@nmims.in}
+\and
+\IEEEauthorblockN{Aranck Jomraj}
+\IEEEauthorblockA{\textit{Dept. of Computer Eng.}\\
+\textit{SVKM's NMIMS Mukesh}\\
+\textit{Patel School of Tech., Mgmt. \& Eng.}\\
+Mumbai, India\\
+aranck.jomraj01@nmims.in}
+\and
+\IEEEauthorblockN{Moksh Jain}
+\IEEEauthorblockA{\textit{Dept. of Computer Eng.}\\
+\textit{SVKM's NMIMS Mukesh}\\
+\textit{Patel School of Tech., Mgmt. \& Eng.}\\
+Mumbai, India\\
+moksh.jain81@nmims.in}
+\and
+\IEEEauthorblockN{Author 4 Placeholder}
+\IEEEauthorblockA{\textit{Dept. Placeholder}\\
+\textit{Institution Placeholder}\\
+\textit{Additional Info, Extra Info}\\
+City, Country\\
+email4@example.com}
 }
 
 \maketitle

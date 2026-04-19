@@ -19,7 +19,7 @@ export function SemanticSearch({ videoId, onJumpToTime }: SemanticSearchProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [results, setResults] = useState<SearchResult[]>([]);
   const [hasSearched, setHasSearched] = useState(false);
-  const { toast } = useToast();
+  const { pushToast } = useToast();
   const { user } = useAuth();
 
   const handleSearch = async (e: React.FormEvent) => {
@@ -43,10 +43,18 @@ export function SemanticSearch({ videoId, onJumpToTime }: SemanticSearchProps) {
         } else {
            setResults([]);
            setHasSearched(true);
-            toast({ title: 'Search unavailable', message: response.error ?? 'MS3 search endpoint did not return results.' });
+           pushToast({
+             title: 'Search unavailable',
+             description: response.error ?? 'MS3 search endpoint did not return results.',
+             type: 'error',
+           });
         }
     } catch {
-        toast({ title: 'Search Failed', message: 'Could not connect to MS3 Vector db.'});
+        pushToast({
+          title: 'Search Failed',
+          description: 'Could not connect to MS3 Vector db.',
+          type: 'error',
+        });
     } finally {
         setIsLoading(false);
     }
@@ -98,7 +106,7 @@ export function SemanticSearch({ videoId, onJumpToTime }: SemanticSearchProps) {
                  </div>
                  <p className="text-sm text-textPrimary leading-relaxed">&quot;{res.text}&quot;</p>
                  <Button 
-                    variant="outline" 
+                    variant="secondary" 
                     size="sm" 
                     className="w-full mt-3 flex items-center justify-center h-7 text-xs"
                     onClick={() => onJumpToTime(res.timestampSec)}

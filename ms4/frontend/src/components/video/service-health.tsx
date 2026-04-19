@@ -32,7 +32,7 @@ export function ServiceHealthPanel() {
         <div className="mb-3 text-xs text-textMuted">
           Quick frontend reachability check for MS1 to MS7 base URLs.
         </div>
-        <Button variant="outline" size="sm" onClick={load} disabled={loading}>
+        <Button variant="secondary" size="sm" onClick={load} disabled={loading}>
           <RefreshCw className={`mr-2 h-3 w-3 ${loading ? 'animate-spin' : ''}`} />
           Refresh Health
         </Button>

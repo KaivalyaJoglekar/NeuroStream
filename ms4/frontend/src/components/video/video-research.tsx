@@ -21,7 +21,7 @@ export function VideoResearch({ videoId }: VideoResearchProps) {
   const [isExporting, setIsExporting] = useState(false);
   const [result, setResult] = useState<ResearchResult | null>(null);
   const [lockedTopic, setLockedTopic] = useState('');
-  const { toast } = useToast();
+  const { pushToast } = useToast();
 
   const run = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -37,10 +37,14 @@ export function VideoResearch({ videoId }: VideoResearchProps) {
       }
       setResult(response.data);
       setLockedTopic(topic.trim());
-      toast({ title: 'Research complete', message: 'MS6 finished the deep research run.' });
+      pushToast({
+        title: 'Research complete',
+        description: 'MS6 finished the deep research run.',
+        type: 'success',
+      });
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error';
-      toast({ title: 'Research failed', message });
+      pushToast({ title: 'Research failed', description: message, type: 'error' });
     } finally {
       setIsLoading(false);
     }
@@ -58,10 +62,14 @@ export function VideoResearch({ videoId }: VideoResearchProps) {
         throw new Error(response.error ?? 'Unable to export research PDF.');
       }
       window.open(response.data.downloadUrl, '_blank', 'noopener,noreferrer');
-      toast({ title: 'Research export ready', message: 'MS7 generated your research PDF.' });
+      pushToast({
+        title: 'Research export ready',
+        description: 'MS7 generated your research PDF.',
+        type: 'success',
+      });
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error';
-      toast({ title: 'Export failed', message });
+      pushToast({ title: 'Export failed', description: message, type: 'error' });
     } finally {
       setIsExporting(false);
     }
@@ -82,7 +90,7 @@ export function VideoResearch({ videoId }: VideoResearchProps) {
               {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Brain className="mr-2 h-4 w-4" />}
               Run Research
             </Button>
-            <Button variant="outline" onClick={exportPdf} disabled={!result || isExporting}>
+            <Button variant="secondary" onClick={exportPdf} disabled={!result || isExporting}>
               {isExporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileDown className="mr-2 h-4 w-4" />}
               Export PDF
             </Button>

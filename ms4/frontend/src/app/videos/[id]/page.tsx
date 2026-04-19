@@ -53,20 +53,21 @@ function VideoDetailsView({ videoId }: { videoId: string }) {
     setLoading(true);
     const response = await fetchVideoDetails(videoId);
     if (response.success && response.data) {
+      const nextVideo = response.data;
       setVideo((previous) => {
         if (
           previous &&
-          previous.id === response.data.id &&
-          previous.objectKey === response.data.objectKey &&
+          previous.id === nextVideo.id &&
+          previous.objectKey === nextVideo.objectKey &&
           previous.fileUrl
         ) {
           return {
-            ...response.data,
+            ...nextVideo,
             // Preserve current playback URL to avoid resetting the player while polling.
             fileUrl: previous.fileUrl,
           };
         }
-        return response.data;
+        return nextVideo;
       });
     }
     setLoading(false);

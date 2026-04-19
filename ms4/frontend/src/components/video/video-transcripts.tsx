@@ -13,7 +13,7 @@ interface VideoTranscriptsProps {
 export function VideoTranscripts({ videoId, onJumpToTime }: VideoTranscriptsProps) {
   const [transcripts, setTranscripts] = useState<TranscriptSegment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const { toast } = useToast();
+  const { pushToast } = useToast();
 
   useEffect(() => {
     let mounted = true;
@@ -23,17 +23,27 @@ export function VideoTranscripts({ videoId, onJumpToTime }: VideoTranscriptsProp
         if (mounted && res.success && res.data) {
           setTranscripts(res.data);
         } else if (mounted) {
-          toast({ title: 'Transcripts unavailable', message: res.error ?? 'MS3 transcript chunks are not available yet.' });
+          pushToast({
+            title: 'Transcripts unavailable',
+            description: res.error ?? 'MS3 transcript chunks are not available yet.',
+            type: 'error',
+          });
         }
       } catch {
-        if (mounted) toast({ title: 'Error', message: 'Failed to load transcript chunks from MS3.' });
+        if (mounted) {
+          pushToast({
+            title: 'Error',
+            description: 'Failed to load transcript chunks from MS3.',
+            type: 'error',
+          });
+        }
       } finally {
         if (mounted) setIsLoading(false);
       }
     };
     void fetchTS();
     return () => { mounted = false; };
-  }, [videoId, toast]);
+  }, [videoId, pushToast]);
 
   const formatTime = (sec: number) => {
       const m = Math.floor(sec / 60);

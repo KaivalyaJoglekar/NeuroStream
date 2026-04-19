@@ -19,7 +19,7 @@ export function AgenticChat({ videoId }: AgenticChatProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const endOfMessagesRef = useRef<HTMLDivElement>(null);
-  const { toast } = useToast();
+  const { pushToast } = useToast();
 
   useEffect(() => {
     endOfMessagesRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -43,7 +43,7 @@ export function AgenticChat({ videoId }: AgenticChatProps) {
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Could not connect to AI Brain.';
-      toast({ title: 'Error', message });
+      pushToast({ title: 'Error', description: message, type: 'error' });
     } finally {
       setIsLoading(false);
     }
@@ -55,13 +55,21 @@ export function AgenticChat({ videoId }: AgenticChatProps) {
       const resp = await triggerPdfExport(videoId, messages);
       if (resp.success && resp.data) {
         window.open(resp.data.downloadUrl, '_blank', 'noopener,noreferrer');
-        toast({ title: 'PDF Export Ready', message: 'MS7 generated your report and opened the download link.' });
+        pushToast({
+          title: 'PDF Export Ready',
+          description: 'MS7 generated your report and opened the download link.',
+          type: 'success',
+        });
       } else {
-        toast({ title: 'Export failed', message: resp.error || 'MS7 export endpoint could not be reached.' });
+        pushToast({
+          title: 'Export failed',
+          description: resp.error || 'MS7 export endpoint could not be reached.',
+          type: 'error',
+        });
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Something went wrong.';
-      toast({ title: 'Export failed', message });
+      pushToast({ title: 'Export failed', description: message, type: 'error' });
     } finally {
       setIsExporting(false);
     }
@@ -105,7 +113,7 @@ export function AgenticChat({ videoId }: AgenticChatProps) {
           </Button>
         </form>
         <Button 
-          variant="outline" 
+          variant="secondary" 
           onClick={handleExport} 
           disabled={isExporting || messages.length < 2} 
           className="w-full text-xs py-1 h-auto text-textMuted hover:text-white"

@@ -19,7 +19,7 @@ export function VideoSummary({ videoId, onJumpToTime }: VideoSummaryProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [summary, setSummary] = useState<SummaryResult | null>(null);
-  const { toast } = useToast();
+  const { pushToast } = useToast();
 
   const formatTime = (sec: number) => {
     const minutes = Math.floor(sec / 60);
@@ -35,10 +35,14 @@ export function VideoSummary({ videoId, onJumpToTime }: VideoSummaryProps) {
         throw new Error(response.error ?? 'Unable to summarize this video right now.');
       }
       setSummary(response.data);
-      toast({ title: 'Summary ready', message: 'MS6 generated a fresh summary for this video.' });
+      pushToast({
+        title: 'Summary ready',
+        description: 'MS6 generated a fresh summary for this video.',
+        type: 'success',
+      });
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error';
-      toast({ title: 'Summary failed', message });
+      pushToast({ title: 'Summary failed', description: message, type: 'error' });
     } finally {
       setIsLoading(false);
     }
@@ -56,10 +60,14 @@ export function VideoSummary({ videoId, onJumpToTime }: VideoSummaryProps) {
         throw new Error(response.error ?? 'Unable to export summary PDF.');
       }
       window.open(response.data.downloadUrl, '_blank', 'noopener,noreferrer');
-      toast({ title: 'Summary export ready', message: 'MS7 generated your summary PDF.' });
+      pushToast({
+        title: 'Summary export ready',
+        description: 'MS7 generated your summary PDF.',
+        type: 'success',
+      });
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error';
-      toast({ title: 'Export failed', message });
+      pushToast({ title: 'Export failed', description: message, type: 'error' });
     } finally {
       setIsExporting(false);
     }
@@ -76,7 +84,7 @@ export function VideoSummary({ videoId, onJumpToTime }: VideoSummaryProps) {
             {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileText className="mr-2 h-4 w-4" />}
             Run Video Summary
           </Button>
-          <Button variant="outline" onClick={exportSummary} disabled={!summary || isExporting}>
+          <Button variant="secondary" onClick={exportSummary} disabled={!summary || isExporting}>
             {isExporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileDown className="mr-2 h-4 w-4" />}
             Export PDF
           </Button>
@@ -105,7 +113,7 @@ export function VideoSummary({ videoId, onJumpToTime }: VideoSummaryProps) {
                       {formatTime(chapter.startSec)} - {formatTime(chapter.endSec)}
                     </div>
                     <Button
-                      variant="outline"
+                      variant="secondary"
                       size="sm"
                       className="h-7 text-xs"
                       onClick={() => onJumpToTime(chapter.startSec)}
