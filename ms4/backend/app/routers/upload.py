@@ -56,7 +56,7 @@ def initiate_upload(
             "uploadUrl": upload_url,
             "objectKey": object_key,
             "expiresIn": 900,
-            "bucket": settings.minio_bucket,
+            "bucket": settings.b2_bucket,
         },
         message="Upload URL generated.",
     )

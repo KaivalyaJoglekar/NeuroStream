@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"net/url"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -43,9 +45,10 @@ func NewS3Client(region, accessKeyID, secretAccessKey, bucketName, endpoint stri
 
 	var s3Opts []func(*s3.Options)
 	if endpoint != "" {
+		usePathStyle := shouldUsePathStyle(endpoint)
 		s3Opts = append(s3Opts, func(o *s3.Options) {
 			o.BaseEndpoint = aws.String(endpoint)
-			o.UsePathStyle = true // Required for MinIO
+			o.UsePathStyle = usePathStyle
 		})
 	}
 
@@ -57,6 +60,19 @@ func NewS3Client(region, accessKeyID, secretAccessKey, bucketName, endpoint stri
 		client:     client,
 		bucketName: bucketName,
 	}, nil
+}
+
+func shouldUsePathStyle(endpoint string) bool {
+	host := endpoint
+	if parsed, err := url.Parse(endpoint); err == nil && parsed.Host != "" {
+		host = parsed.Host
+	}
+
+	host = strings.ToLower(host)
+	return strings.Contains(host, "localhost") ||
+		strings.Contains(host, "127.0.0.1") ||
+		strings.Contains(host, "minio") ||
+		strings.Contains(host, "localstack")
 }
 
 // DownloadFile downloads an object from S3 to a local file path.

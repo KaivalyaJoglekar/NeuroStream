@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from pydantic import Field
+from pydantic import AliasChoices, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -16,12 +16,13 @@ class Settings(BaseSettings):
     database_url: str = Field(alias="DATABASE_URL")
     redis_url: str = Field(default="redis://localhost:6379", alias="REDIS_URL")
 
-    minio_endpoint: str = Field(default="localhost", alias="MINIO_ENDPOINT")
-    minio_port: int = Field(default=9000, alias="MINIO_PORT")
-    minio_use_ssl: bool = Field(default=False, alias="MINIO_USE_SSL")
-    minio_access_key: str = Field(alias="MINIO_ACCESS_KEY")
-    minio_secret_key: str = Field(alias="MINIO_SECRET_KEY")
-    minio_bucket: str = Field(default="neurostream-videos", alias="MINIO_BUCKET")
+    b2_endpoint: str = Field(default="localhost", validation_alias=AliasChoices("B2_ENDPOINT", "MINIO_ENDPOINT"))
+    b2_port: int = Field(default=9000, validation_alias=AliasChoices("B2_PORT", "MINIO_PORT"))
+    b2_use_ssl: bool = Field(default=False, validation_alias=AliasChoices("B2_USE_SSL", "MINIO_USE_SSL"))
+    b2_key_id: str = Field(validation_alias=AliasChoices("B2_KEY_ID", "MINIO_ACCESS_KEY"))
+    b2_application_key: str = Field(validation_alias=AliasChoices("B2_APPLICATION_KEY", "MINIO_SECRET_KEY"))
+    b2_bucket: str = Field(default="neurostream-videos", validation_alias=AliasChoices("B2_BUCKET", "MINIO_BUCKET"))
+    b2_region: str = Field(default="us-west-004", validation_alias=AliasChoices("B2_REGION"))
 
     jwt_secret: str = Field(alias="JWT_SECRET")
     jwt_expires_in: str = Field(default="7d", alias="JWT_EXPIRES_IN")

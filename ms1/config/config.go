@@ -51,11 +51,11 @@ func Load() (*Config, error) {
 	cfg := &Config{
 		RedisURL:           getEnv("REDIS_URL", "redis://localhost:6379"),
 		RedisQueueName:     getEnv("REDIS_QUEUE_NAME", "media_processing_jobs"),
-		AWSRegion:          getEnv("AWS_REGION", "ap-south-1"),
-		AWSAccessKeyID:     getEnv("AWS_ACCESS_KEY_ID", ""),
-		AWSSecretAccessKey: getEnv("AWS_SECRET_ACCESS_KEY", ""),
-		S3BucketName:       getEnv("S3_BUCKET_NAME", "neurostream-media"),
-		S3Endpoint:         getEnv("S3_ENDPOINT", ""),
+		AWSRegion:          getEnvAny([]string{"AWS_REGION", "S3_REGION"}, "ap-south-1"),
+		AWSAccessKeyID:     getEnvAny([]string{"AWS_ACCESS_KEY_ID", "S3_ACCESS_KEY_ID"}, ""),
+		AWSSecretAccessKey: getEnvAny([]string{"AWS_SECRET_ACCESS_KEY", "S3_SECRET_ACCESS_KEY"}, ""),
+		S3BucketName:       getEnvAny([]string{"S3_BUCKET_NAME", "AWS_S3_BUCKET"}, "neurostream-media"),
+		S3Endpoint:         getEnvAny([]string{"S3_ENDPOINT", "AWS_ENDPOINT_URL"}, ""),
 		S3RawPrefix:        getEnv("S3_RAW_PREFIX", "raw-uploads"),
 		S3ProcessedPrefix:  getEnv("S3_PROCESSED_PREFIX", "processed"),
 		AudioFormat:        getEnv("AUDIO_FORMAT", "wav"),
@@ -91,7 +91,7 @@ func Load() (*Config, error) {
 
 func (c *Config) validate() error {
 	if c.S3BucketName == "" {
-		return fmt.Errorf("S3_BUCKET_NAME is required")
+		return fmt.Errorf("S3 bucket is required (set S3_BUCKET_NAME or AWS_S3_BUCKET)")
 	}
 	if c.WorkerCount < 1 {
 		return fmt.Errorf("WORKER_COUNT must be >= 1")
@@ -105,6 +105,15 @@ func (c *Config) validate() error {
 func getEnv(key, fallback string) string {
 	if val, ok := os.LookupEnv(key); ok {
 		return val
+	}
+	return fallback
+}
+
+func getEnvAny(keys []string, fallback string) string {
+	for _, key := range keys {
+		if val, ok := os.LookupEnv(key); ok {
+			return val
+		}
 	}
 	return fallback
 }

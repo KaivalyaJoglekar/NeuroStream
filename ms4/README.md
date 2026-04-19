@@ -3,6 +3,7 @@
 NeuroStream is a full-stack user workflow service for AI video processing.
 
 - Backend: FastAPI + SQLAlchemy + PostgreSQL + Redis + MinIO (S3-compatible)
+- Backend: FastAPI + SQLAlchemy + PostgreSQL + Redis + Backblaze B2 (S3-compatible)
 - Frontend: Next.js 14 + TypeScript + Tailwind CSS + Framer Motion
 - Local infrastructure: Docker Compose
 
@@ -66,8 +67,8 @@ This starts:
 
 - PostgreSQL on `localhost:5432`
 - Redis on `localhost:6379`
-- MinIO API on `localhost:9000`
-- MinIO Console on `http://localhost:9001`
+- Optional local MinIO emulator API on `localhost:9000`
+- Optional local MinIO Console on `http://localhost:9001`
 
 ### 2. Start backend (Terminal A)
 
@@ -143,6 +144,7 @@ cd frontend && npm run build
 ## Troubleshooting
 
 - Upload URL failures usually indicate MinIO is not healthy or backend MinIO credentials mismatch.
+- Upload URL failures usually indicate object storage endpoint/credentials mismatch.
 - Frontend API failures usually indicate `NEXT_PUBLIC_API_BASE_URL` is incorrect or backend is not running.
 - DB connection errors usually indicate PostgreSQL is down or `DATABASE_URL` is wrong.
 - Internal callback failures usually indicate `x-api-key` does not match `INTERNAL_API_KEY`.
@@ -150,5 +152,5 @@ cd frontend && npm run build
 ## Notes
 
 - Backend tables are created automatically at startup via FastAPI lifespan.
-- MinIO bucket creation is enforced at startup.
+- Storage bucket access is validated at startup.
 - The frontend is focused on authenticated workflows: dashboard, upload, library, and video details.
