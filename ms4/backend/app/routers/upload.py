@@ -1,3 +1,4 @@
+import uuid
 from fastapi import APIRouter, Depends, HTTPException
 from botocore.exceptions import ClientError
 from sqlalchemy import func, select
@@ -117,12 +118,13 @@ def complete_upload(
 
     publish_processing_job(
         {
-            "videoId": video.id,
-            "objectKey": video.object_key,
-            "userId": current_user.id,
-            "fileName": video.file_name,
-            "contentType": video.content_type,
-            "fileSize": int(video.file_size),
+            "job_id": str(uuid.uuid4()),
+            "video_id": str(video.id),
+            "user_id": str(current_user.id),
+            "s3_raw_path": video.object_key,
+            "original_filename": video.file_name,
+            "content_type": video.content_type,
+            "file_size_bytes": int(video.file_size),
         }
     )
 

@@ -15,14 +15,16 @@ import (
 // MS4Notifier handles sending status callbacks to MS4.
 type MS4Notifier struct {
 	callbackURL string
+	apiKey      string
 	httpClient  *http.Client
 	maxRetries  int
 }
 
 // NewMS4Notifier creates a new MS4 callback notifier.
-func NewMS4Notifier(callbackURL string) *MS4Notifier {
+func NewMS4Notifier(callbackURL, apiKey string) *MS4Notifier {
 	return &MS4Notifier{
 		callbackURL: callbackURL,
+		apiKey:      apiKey,
 		httpClient: &http.Client{
 			Timeout: 30 * time.Second,
 		},
@@ -61,13 +63,13 @@ func (n *MS4Notifier) Notify(ctx context.Context, payload interface{}) error {
 }
 
 func (n *MS4Notifier) sendOnce(ctx context.Context, data []byte) error {
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, n.callbackURL, bytes.NewReader(data))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPatch, n.callbackURL, bytes.NewReader(data))
 	if err != nil {
 		return fmt.Errorf("failed to create request: %w", err)
 	}
 
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("X-Service-Name", "ms1-media-processor")
+	req.Header.Set("X-Internal-API-Key", n.apiKey)
 
 	resp, err := n.httpClient.Do(req)
 	if err != nil {

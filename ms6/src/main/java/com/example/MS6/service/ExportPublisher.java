@@ -12,7 +12,7 @@ import org.springframework.stereotype.Service;
 import java.util.Map;
 
 /**
- * Minimal RabbitMQ publisher to broadcast MS6 outputs to MS7 (namesake connection).
+ * Minimal RabbitMQ publisher to broadcast MS6 outputs to MS7 .
  */
 @Service
 public class ExportPublisher {

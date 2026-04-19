@@ -53,7 +53,7 @@ func main() {
 	}
 
 	// Initialize MS4 notifier
-	notifier := callback.NewMS4Notifier(cfg.MS4CallbackURL)
+	notifier := callback.NewMS4Notifier(cfg.MS4CallbackURL, cfg.InternalAPIKey)
 
 	// Create worker pool
 	pool := worker.NewPool(cfg, consumer, s3, notifier)

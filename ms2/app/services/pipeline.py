@@ -126,17 +126,20 @@ class ProcessingService:
         return True
 
     async def _notify_ms4(self, *, payload: ProcessRequest) -> bool:
-        if not self._settings.ms4_base_url:
+        if not self._settings.ms4_base_url or not self._settings.ms4_api_key:
             return False
 
         try:
             async with httpx.AsyncClient(timeout=10.0) as client:
                 response = await client.patch(
-                    f"{self._settings.ms4_base_url}/jobs/{payload.job_id}/status",
+                    f"{self._settings.ms4_base_url}/internal/job-status",
                     json={
-                        "status": "ai_complete",
-                        "video_id": str(payload.video_id),
+                        "videoId": str(payload.video_id),
+                        "serviceName": "ai-vision-nlp",
+                        "newStatus": "AI_PROCESSED",
+                        "metadata": {"job_id": payload.job_id}
                     },
+                    headers={"x-internal-api-key": self._settings.ms4_api_key}
                 )
                 response.raise_for_status()
         except httpx.HTTPError as exc:

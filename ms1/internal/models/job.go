@@ -33,53 +33,45 @@ type ArtifactsManifest struct {
 	TotalDurationSeconds float64         `json:"total_duration_seconds"`
 }
 
-// SuccessCallback is the payload sent to MS4 on successful processing.
-type SuccessCallback struct {
-	JobID       string            `json:"job_id"`
-	VideoID     string            `json:"video_id"`
-	Status      string            `json:"status"`
-	ProcessedAt string            `json:"processed_at"`
-	Artifacts   ArtifactsManifest `json:"artifacts"`
+// MS4CallbackPayload strictly matches MS4's StatusCallbackRequest schema.
+type MS4CallbackPayload struct {
+	VideoID          string                 `json:"videoId"`
+	ServiceName      string                 `json:"serviceName"`
+	NewStatus        string                 `json:"newStatus"`
+	Message          string                 `json:"message"`
+	Metadata         map[string]interface{} `json:"metadata,omitempty"`
+	ProcessedMinutes float64                `json:"processedMinutes,omitempty"`
 }
 
-// ErrorDetail holds error information for failed jobs.
-type ErrorDetail struct {
-	Stage      string `json:"stage"`
-	Message    string `json:"message"`
-	RetryCount int    `json:"retry_count"`
-}
-
-// FailureCallback is the payload sent to MS4 on processing failure.
-type FailureCallback struct {
-	JobID    string      `json:"job_id"`
-	VideoID  string      `json:"video_id"`
-	Status   string      `json:"status"`
-	FailedAt string      `json:"failed_at"`
-	Error    ErrorDetail `json:"error"`
-}
-
-// NewSuccessCallback creates a success callback payload.
-func NewSuccessCallback(job *Job, artifacts ArtifactsManifest) SuccessCallback {
-	return SuccessCallback{
-		JobID:       job.JobID,
+// NewSuccessCallback creates a success callback payload matching MS4 standards.
+func NewSuccessCallback(job *Job, artifacts ArtifactsManifest) MS4CallbackPayload {
+	return MS4CallbackPayload{
 		VideoID:     job.VideoID,
-		Status:      "MEDIA_PROCESSING_COMPLETE",
-		ProcessedAt: time.Now().UTC().Format(time.RFC3339),
-		Artifacts:   artifacts,
+		ServiceName: "media-processor",
+		NewStatus:   "MEDIA_PROCESSED",
+		Message:     "Media processing completed successfully",
+		Metadata: map[string]interface{}{
+			"job_id":       job.JobID,
+			"processed_at": time.Now().UTC().Format(time.RFC3339),
+			"artifacts":    artifacts,
+		},
+		ProcessedMinutes: artifacts.TotalDurationSeconds / 60.0,
 	}
 }
 
 // NewFailureCallback creates a failure callback payload.
-func NewFailureCallback(job *Job, stage, message string, retryCount int) FailureCallback {
-	return FailureCallback{
-		JobID:   job.JobID,
-		VideoID: job.VideoID,
-		Status:  "MEDIA_PROCESSING_FAILED",
-		FailedAt: time.Now().UTC().Format(time.RFC3339),
-		Error: ErrorDetail{
-			Stage:      stage,
-			Message:    message,
-			RetryCount: retryCount,
+func NewFailureCallback(job *Job, stage, message string, retryCount int) MS4CallbackPayload {
+	return MS4CallbackPayload{
+		VideoID:     job.VideoID,
+		ServiceName: "media-processor",
+		NewStatus:   "FAILED",
+		Message:     message,
+		Metadata: map[string]interface{}{
+			"job_id":      job.JobID,
+			"failed_at":   time.Now().UTC().Format(time.RFC3339),
+			"stage":       stage,
+			"retry_count": retryCount,
 		},
 	}
 }
+

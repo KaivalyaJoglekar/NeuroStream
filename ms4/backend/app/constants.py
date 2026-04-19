@@ -24,5 +24,5 @@ KNOWN_SERVICES = {
     "agentic-researcher",
 }
 
-WORKFLOW_QUEUE_NAME = "workflow-jobs"
+WORKFLOW_QUEUE_NAME = "media_processing_jobs"
 CLEANUP_QUEUE_NAME = "cleanup-jobs"

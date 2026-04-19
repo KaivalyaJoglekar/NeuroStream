@@ -25,6 +25,7 @@ class Settings:
     whisper_model: str
     ms3_base_url: str
     ms4_base_url: str
+    ms4_api_key: str
     embedding_dimensions: int
     process_inline: bool
     mock_external_services: bool
