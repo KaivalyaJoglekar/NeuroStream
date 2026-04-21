@@ -33,10 +33,10 @@ class Settings:
     whisper_model: str
     ms3_base_url: str
     ms4_base_url: str
-    ms4_api_key: str
     embedding_dimensions: int
     process_inline: bool
     mock_external_services: bool
+    ms4_api_key: str = ""
 
 
 @lru_cache(maxsize=1)
@@ -56,6 +56,7 @@ def get_settings() -> Settings:
         whisper_model=os.getenv("WHISPER_MODEL", "base"),
         ms3_base_url=os.getenv("MS3_BASE_URL", "").rstrip("/"),
         ms4_base_url=os.getenv("MS4_BASE_URL", "").rstrip("/"),
+    ms4_api_key=_get_first_env(["MS4_API_KEY", "MS4_TOKEN"], ""),
         embedding_dimensions=int(os.getenv("EMBEDDING_DIMENSIONS", "768")),
         process_inline=_get_bool("MS2_PROCESS_INLINE", True),
         mock_external_services=_get_bool("MOCK_EXTERNAL_SERVICES", True),
