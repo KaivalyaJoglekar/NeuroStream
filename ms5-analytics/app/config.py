@@ -6,10 +6,19 @@ import os
 
 def _resolve_database_url() -> str:
     """Resolve database URL with MS5-specific override to avoid
-    collisions with Render's global DATABASE_URL (which points to PostgreSQL)."""
-    ms5_url = os.environ.get("MS5_DATABASE_URL")
-    if ms5_url:
-        return ms5_url
+    collisions with Render's global DATABASE_URL (which points to PostgreSQL).
+
+    Priority: MS5_DATABASE_URL → DATABASE_URL → SQLite default.
+    Automatically converts plain 'postgresql://' to 'postgresql+asyncpg://'
+    since SQLAlchemy's async engine requires the asyncpg driver prefix.
+    """
+    url = os.environ.get("MS5_DATABASE_URL") or os.environ.get("DATABASE_URL")
+    if url:
+        # Render injects postgresql:// which defaults to psycopg2 (sync).
+        # Convert to the async driver prefix for create_async_engine.
+        if url.startswith("postgresql://"):
+            url = url.replace("postgresql://", "postgresql+asyncpg://", 1)
+        return url
     return "sqlite+aiosqlite:///./ms5_analytics.db"
 
 

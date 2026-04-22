@@ -49,11 +49,12 @@ public class ChatService {
         // 1. Retrieve context from MS3
         t = System.currentTimeMillis();
         var context = retriever.fetchContext(request.videoId(), request.question());
+        List<String> contextBlocks = context.contextBlocks() != null
+                ? context.contextBlocks() : List.of();
         trace.put("retriever", Map.of(
-                "chunks_fetched", context.contextBlocks().size(),
+                "chunks_fetched", contextBlocks.size(),
                 "latency_ms", System.currentTimeMillis() - t));
 
-        List<String> contextBlocks = context.contextBlocks();
         if (contextBlocks.isEmpty()) {
             // Fallback to full transcript chunks when semantic context search returns empty.
             t = System.currentTimeMillis();
