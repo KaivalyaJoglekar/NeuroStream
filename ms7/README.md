@@ -81,5 +81,6 @@ POST /api/v1/export/chat
 | `AWS_ACCESS_KEY_ID` | Yes | — |
 | `AWS_SECRET_ACCESS_KEY` | Yes | — |
 | `AWS_REGION` | No | `us-east-1` |
+| `AWS_ENDPOINT_URL` | No | Empty (AWS S3 default endpoint) |
 | `S3_EXPORT_BUCKET` | No | `neurostream-exports` |
 | `PRESIGNED_URL_EXPIRY` | No | `3600` (1 hour) |

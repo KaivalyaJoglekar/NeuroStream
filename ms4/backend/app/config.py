@@ -43,7 +43,7 @@ class Settings(BaseSettings):
     jwt_expires_in: str = Field(default="7d", alias="JWT_EXPIRES_IN")
 
     internal_api_key: str = Field(alias="INTERNAL_API_KEY")
-    ms2_base_url: str = Field(default="http://13.201.89.80:8002", alias="MS2_BASE_URL")
+    ms2_base_url: str = Field(default="https://neurostream-1.onrender.com", alias="MS2_BASE_URL")
     ms5_base_url: str = Field(default="https://neurostreamms5.onrender.com", alias="MS5_BASE_URL")
     ms5_internal_secret: str = Field(default="", alias="MS5_INTERNAL_SECRET")
 

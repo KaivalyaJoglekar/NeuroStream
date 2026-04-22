@@ -7,6 +7,10 @@ class Settings(BaseSettings):
     aws_secret_access_key: str = Field(
         validation_alias=AliasChoices("AWS_SECRET_ACCESS_KEY", "S3_SECRET_ACCESS_KEY")
     )
+    s3_endpoint_url: str = Field(
+        default="",
+        validation_alias=AliasChoices("AWS_ENDPOINT_URL", "S3_ENDPOINT", "B2_ENDPOINT"),
+    )
     aws_region: str = Field(default="us-east-1", validation_alias=AliasChoices("AWS_REGION", "S3_REGION"))
     s3_export_bucket: str = Field(
         default="neurostream-exports",
