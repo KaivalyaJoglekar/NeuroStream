@@ -129,6 +129,12 @@ type Ms3ChunkResponse = Array<{
   text: string;
 }>;
 
+type Ms3VideoStatusResponse = {
+  video_id: string;
+  status: string;
+  indexed_at?: string | null;
+};
+
 function joinUrl(baseUrl: string, path: string): string {
   const normalizedBase = baseUrl.replace(/\/+$/, '');
   const normalizedPath = path.startsWith('/') ? path : `/${path}`;
@@ -237,9 +243,38 @@ export async function chatInference(videoId: string, prompt: string, history: Ch
   }, 120000);
 
   if (!response.success || !response.data) {
+    const rawError = response.error ?? 'Unable to reach MS6 chat endpoint';
+
+    if (/Requested video not found or not yet indexed\.?/i.test(rawError)) {
+      const statusResp = await microserviceRequest<Ms3VideoStatusResponse>(
+        joinUrl(MS3_BASE_URL, `/video/${videoId}/status`),
+        {},
+        10000,
+      );
+
+      if (statusResp.success && statusResp.data?.status) {
+        if (statusResp.data.status.toLowerCase() !== 'ready') {
+          return {
+            success: false,
+            error: 'This video is still being indexed. Please wait a minute and try chat again.',
+          } as ApiResponse<{ reply: string; sources: SearchResult[]; citations: Citation[] }>;
+        }
+
+        return {
+          success: false,
+          error: 'Video appears indexed, but MS6 could not retrieve chunks. Check that MS6 and MS3 are pointing to the same deployment environment.',
+        } as ApiResponse<{ reply: string; sources: SearchResult[]; citations: Citation[] }>;
+      }
+
+      return {
+        success: false,
+        error: 'This video is not indexed in MS3 yet. Please wait for processing to finish and retry.',
+      } as ApiResponse<{ reply: string; sources: SearchResult[]; citations: Citation[] }>;
+    }
+
     return {
       success: false,
-      error: response.error ?? 'Unable to reach MS6 chat endpoint',
+      error: rawError,
     } as ApiResponse<{ reply: string; sources: SearchResult[]; citations: Citation[] }>;
   }
 

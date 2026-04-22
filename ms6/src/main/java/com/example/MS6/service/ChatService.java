@@ -69,6 +69,20 @@ public class ChatService {
         }
 
         if (contextBlocks.isEmpty()) {
+            t = System.currentTimeMillis();
+            var status = retriever.checkStatus(request.videoId());
+            String indexingStatus = status != null ? status.status() : "not_found";
+            trace.put("video_status", Map.of(
+                    "status", indexingStatus,
+                    "latency_ms", System.currentTimeMillis() - t));
+
+            if (!"ready".equalsIgnoreCase(indexingStatus)) {
+                return new ResponseTypes.ChatResponse(
+                        "This video is still being indexed. Please try again shortly.",
+                        List.of(),
+                        trace);
+            }
+
             return new ResponseTypes.ChatResponse(
                     "No relevant content found in this video.", List.of(), trace);
         }

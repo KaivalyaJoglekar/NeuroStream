@@ -64,18 +64,28 @@ public class Ms3Client {
     /** Fetch the full ordered transcript for a video. */
     public List<Ms3Types.ChunkResponse> getChunks(String videoId) {
         log.debug("MS3 /video/{}/chunks", videoId);
-        return restClient.get()
-                .uri("/video/{videoId}/chunks", videoId)
-                .retrieve()
-                .body(new ParameterizedTypeReference<>() {});
+        try {
+            return restClient.get()
+                    .uri("/video/{videoId}/chunks", videoId)
+                    .retrieve()
+                    .body(new ParameterizedTypeReference<>() {});
+        } catch (HttpClientErrorException.NotFound e) {
+            log.warn("MS3 returned 404 for video={} — transcript chunks not indexed yet", videoId);
+            return List.of();
+        }
     }
 
     /** Check indexing readiness status for a video. */
     public Ms3Types.VideoStatusResponse getVideoStatus(String videoId) {
         log.debug("MS3 /video/{}/status", videoId);
-        return restClient.get()
-                .uri("/video/{videoId}/status", videoId)
-                .retrieve()
-                .body(Ms3Types.VideoStatusResponse.class);
+        try {
+            return restClient.get()
+                    .uri("/video/{videoId}/status", videoId)
+                    .retrieve()
+                    .body(Ms3Types.VideoStatusResponse.class);
+        } catch (HttpClientErrorException.NotFound e) {
+            log.warn("MS3 returned 404 for video={} — status unavailable", videoId);
+            return null;
+        }
     }
 }
