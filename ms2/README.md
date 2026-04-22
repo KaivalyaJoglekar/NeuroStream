@@ -31,6 +31,7 @@ MS2 is the AI perception service for NeuroStream. It turns audio and frame refer
 - `GEMINI_API_KEY`
 - `GEMINI_VISION_MODEL`
 - `GEMINI_EMBEDDING_MODEL`
+- `OPENAI_API_KEY`
 - `WHISPER_MODEL`
 - `MS3_BASE_URL`
 - `MS4_BASE_URL`
@@ -39,6 +40,12 @@ MS2 is the AI perception service for NeuroStream. It turns audio and frame refer
 - `MOCK_EXTERNAL_SERVICES` (default `true`)
 
 By default the service uses deterministic fallback implementations so the pipeline can be exercised without live Whisper or Gemini access. Set `MOCK_EXTERNAL_SERVICES=false` once the real model dependencies and credentials are ready.
+
+For production-style deployments, MS2 should run with:
+
+- `MOCK_EXTERNAL_SERVICES=false`
+- `OPENAI_API_KEY` set for Whisper transcription
+- `GEMINI_API_KEY` set for embeddings and, if enabled, vision analysis
 
 ## Local Run
 

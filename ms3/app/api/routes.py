@@ -135,8 +135,9 @@ async def video_status(
 async def video_chunks(
     video_id: UUID,
     metadata_service: Annotated[MetadataService, Depends(get_metadata_service)],
+    source: str | None = Query(default=None, pattern="^(audio|visual)$"),
 ):
-    chunks = await metadata_service.get_chunks(video_id)
+    chunks = await metadata_service.get_chunks(video_id, source)
     if not chunks:
         raise HTTPException(status_code=404, detail="video not found")
     return chunks
@@ -150,6 +151,7 @@ async def video_context(
     query: str | None = None,
     query_embedding: str | None = Query(default=None, description="Comma-separated embedding vector"),
     limit: int = Query(default=5, ge=1),
+    source: str | None = Query(default=None, pattern="^(audio|visual)$"),
 ) -> ContextResponse:
     try:
         resolved_embedding = await _resolve_embedding(request, query, query_embedding)
@@ -158,6 +160,7 @@ async def video_context(
             query_text=query,
             query_embedding=resolved_embedding,
             limit=limit,
+            source=source,
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
@@ -165,4 +168,3 @@ async def video_context(
     if not payload.context_blocks:
         raise HTTPException(status_code=404, detail="video not found or no matching context")
     return payload
-

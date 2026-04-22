@@ -24,7 +24,7 @@ import java.util.stream.Collectors;
 public class ChatService {
 
     private static final Logger log = LoggerFactory.getLogger(ChatService.class);
-    private static final int FALLBACK_MAX_CHUNKS = 20;
+    private static final int FALLBACK_MAX_CHUNKS = 24;
 
     private final RetrieverAgent retriever;
     private final AnalyzerAgent analyzer;
@@ -48,23 +48,38 @@ public class ChatService {
 
         // 1. Retrieve context from MS3
         t = System.currentTimeMillis();
-        var context = retriever.fetchContext(request.videoId(), request.question());
+        var context = retriever.fetchContext(request.videoId(), request.question(), RetrieverAgent.AUDIO_SOURCE);
         List<String> contextBlocks = context.contextBlocks() != null
                 ? context.contextBlocks() : List.of();
         trace.put("retriever", Map.of(
+                "source_preference", RetrieverAgent.AUDIO_SOURCE,
                 "chunks_fetched", contextBlocks.size(),
                 "latency_ms", System.currentTimeMillis() - t));
 
         if (contextBlocks.isEmpty()) {
-            // Fallback to full transcript chunks when semantic context search returns empty.
+            // Fallback to ordered audio transcript chunks when semantic context search returns empty.
+            t = System.currentTimeMillis();
+            contextBlocks = retriever.fetchAllChunks(request.videoId(), RetrieverAgent.AUDIO_SOURCE).stream()
+                    .limit(FALLBACK_MAX_CHUNKS)
+                    .map(chunk -> String.format("[%.2f-%.2f] %s (source=%s)",
+                            chunk.startTime(), chunk.endTime(), chunk.text(), chunk.source()))
+                    .collect(Collectors.toList());
+            trace.put("retriever_fallback", Map.of(
+                    "mode", "audio_chunks",
+                    "chunks_fetched", contextBlocks.size(),
+                    "latency_ms", System.currentTimeMillis() - t));
+        }
+
+        if (contextBlocks.isEmpty()) {
+            // Last-resort fallback for visually descriptive videos with no usable audio transcript.
             t = System.currentTimeMillis();
             contextBlocks = retriever.fetchAllChunks(request.videoId()).stream()
                     .limit(FALLBACK_MAX_CHUNKS)
                     .map(chunk -> String.format("[%.2f-%.2f] %s (source=%s)",
                             chunk.startTime(), chunk.endTime(), chunk.text(), chunk.source()))
                     .collect(Collectors.toList());
-            trace.put("retriever_fallback", Map.of(
-                    "mode", "video_chunks",
+            trace.put("retriever_visual_fallback", Map.of(
+                    "mode", "all_chunks",
                     "chunks_fetched", contextBlocks.size(),
                     "latency_ms", System.currentTimeMillis() - t));
         }
@@ -86,6 +101,16 @@ public class ChatService {
 
             return new ResponseTypes.ChatResponse(
                     "No relevant content found in this video.", List.of(), trace);
+        }
+
+        if (looksLikeMockTranscription(contextBlocks)) {
+            trace.put("transcript_quality", Map.of(
+                    "quality", "mock_placeholder",
+                    "chunks_examined", contextBlocks.size()));
+            return new ResponseTypes.ChatResponse(
+                    "This video was indexed with placeholder transcript text from MS2, so chat answers will be unreliable. Configure real audio transcription in MS2 by setting OPENAI_API_KEY and MOCK_EXTERNAL_SERVICES=false, then reprocess the video.",
+                    List.of(),
+                    trace);
         }
 
         // 2–4. Run analysis pipeline
@@ -122,6 +147,21 @@ public class ChatService {
 
         // 2–4. Run analysis pipeline
         return runPipeline(request.question(), contextBlocks, null, trace);
+    }
+
+    private boolean looksLikeMockTranscription(List<String> contextBlocks) {
+        if (contextBlocks.isEmpty()) {
+            return false;
+        }
+
+        long placeholderCount = contextBlocks.stream()
+                .map(String::toLowerCase)
+                .filter(block -> block.contains("[mock transcript]")
+                        || block.contains("transcribed narration from ")
+                        || block.contains("placeholder narration for "))
+                .count();
+
+        return placeholderCount == contextBlocks.size();
     }
 
     /** Shared pipeline: Analyzer → Synthesizer → CitationLinker */

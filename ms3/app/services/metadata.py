@@ -14,8 +14,8 @@ class MetadataService:
     async def get_status(self, video_id: UUID) -> VideoStatusResponse | None:
         return await self._repository.get_status(video_id)
 
-    async def get_chunks(self, video_id: UUID):
-        return await self._repository.get_chunks(video_id)
+    async def get_chunks(self, video_id: UUID, source: str | None = None):
+        return await self._repository.get_chunks(video_id, source)
 
     async def build_context(
         self,
@@ -24,6 +24,7 @@ class MetadataService:
         query_text: str | None,
         query_embedding: Sequence[float] | None,
         limit: int,
+        source: str | None = None,
     ) -> ContextResponse:
         if query_text or query_embedding:
             chunks: Sequence[SearchResult] = await self._repository.search(
@@ -32,7 +33,7 @@ class MetadataService:
                 video_id=video_id,
                 language=None,
                 title_contains=None,
-                source=None,
+                source=source,
                 limit=limit,
             )
             blocks = [
@@ -45,12 +46,12 @@ class MetadataService:
             if not blocks:
                 blocks = [
                     f"[{chunk.start_time:.2f}-{chunk.end_time:.2f}] {chunk.text} (source={chunk.source})"
-                    for chunk in await self._repository.get_chunks(video_id)
+                    for chunk in await self._repository.get_chunks(video_id, source)
                 ][:limit]
         else:
             blocks = [
                 f"[{chunk.start_time:.2f}-{chunk.end_time:.2f}] {chunk.text} (source={chunk.source})"
-                for chunk in await self._repository.get_chunks(video_id)
+                for chunk in await self._repository.get_chunks(video_id, source)
             ][:limit]
 
         return ContextResponse(
@@ -58,4 +59,3 @@ class MetadataService:
             context_blocks=blocks,
             storage_backend=self._repository.backend_name,
         )
-

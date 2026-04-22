@@ -375,7 +375,9 @@ export async function searchVideo(videoId: string, query: string) {
 // Transcript retrieval uses MS3 indexed chunks as a stable transcript source.
 export async function getTranscripts(videoId: string) {
   const response = await microserviceRequest<Ms3ChunkResponse>(
-    joinUrl(MS3_BASE_URL, `/video/${videoId}/chunks`),
+    withQuery(joinUrl(MS3_BASE_URL, `/video/${videoId}/chunks`), {
+      source: 'audio',
+    }),
   );
 
   if (!response.success || !response.data) {

@@ -18,10 +18,16 @@ def get_processing_service(request: Request) -> ProcessingService:
 
 @router.get("/health", response_model=HealthResponse)
 async def health(request: Request) -> HealthResponse:
+    settings = request.app.state.settings
     execution_mode = "inline" if request.app.state.settings.process_inline else "celery"
+    using_real_providers = not settings.mock_external_services
     return HealthResponse(
-        service=request.app.state.settings.service_name,
+        service=settings.service_name,
         execution_mode=execution_mode,
+        mock_external_services=settings.mock_external_services,
+        transcription_backend="openai_whisper_api" if using_real_providers and settings.openai_api_key else "mock_fallback",
+        vision_backend="gemini_vision" if using_real_providers and settings.gemini_api_key and settings.gemini_vision_model else "mock_fallback",
+        embedding_backend="gemini_embeddings" if using_real_providers and settings.gemini_api_key else "deterministic_fallback",
     )
 
 
@@ -75,4 +81,3 @@ async def get_status(job_id: str, request: Request) -> JobStatusResponse:
     if payload is None:
         raise HTTPException(status_code=404, detail="job not found")
     return payload
-

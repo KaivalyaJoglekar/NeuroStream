@@ -122,7 +122,7 @@ class TranscriptionService:
             start_time = audio_segment.start_time if audio_segment.start_time is not None else cursor
             end_time = audio_segment.end_time if audio_segment.end_time is not None else start_time + 15.0
             stem = Path(audio_segment.s3_key).stem.replace("_", " ").replace("-", " ")
-            text = f"Transcribed narration from {stem or f'audio segment {index + 1}'}."
+            text = f"[mock transcript] Placeholder narration for {stem or f'audio segment {index + 1}'}."
             transcripts.append(
                 TranscriptSegment(
                     start_time=start_time,

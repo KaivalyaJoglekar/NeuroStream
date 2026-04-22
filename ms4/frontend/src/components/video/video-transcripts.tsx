@@ -72,7 +72,7 @@ export function VideoTranscripts({ videoId, onJumpToTime }: VideoTranscriptsProp
       return (
           <div className="flex flex-col items-center justify-center h-[500px] text-textMuted gap-3">
               <Loader2 className="w-6 h-6 animate-spin" />
-              <p className="text-sm">Loading transcript chunks from MS3...</p>
+              <p className="text-sm">Loading audio transcript from MS3...</p>
           </div>
       );
   }
@@ -81,7 +81,7 @@ export function VideoTranscripts({ videoId, onJumpToTime }: VideoTranscriptsProp
       return (
         <div className="flex flex-col items-center justify-center h-[500px] text-textMuted gap-3">
             <FileText className="w-8 h-8 opacity-50" />
-          <p className="text-sm text-center px-6">Transcripts are not available yet.<br/>Ensure indexing through MS2 and MS3 is completed.</p>
+          <p className="text-sm text-center px-6">Audio transcript is not available yet.<br/>Ensure indexing through MS2 and MS3 is completed.</p>
         </div>
     );
   }

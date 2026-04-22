@@ -127,7 +127,7 @@ class VisionService:
             stem = Path(frame.s3_key).stem.replace("_", " ").replace("-", " ")
             descriptive_label = stem or f"frame {index + 1}"
             objects = [part for part in descriptive_label.split()[:3] if part]
-            description = f"Visual scene captured in {descriptive_label} with notable on-screen context."
+            description = f"[mock visual] Visual scene captured in {descriptive_label} with notable on-screen context."
             analyses.append(
                 FrameAnalysis(
                     timestamp=timestamp,

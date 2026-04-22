@@ -43,10 +43,20 @@ public class SummarizeService {
 
         // 1. Fetch full transcript from MS3
         t = System.currentTimeMillis();
-        List<ChunkResponse> chunks = retriever.fetchAllChunks(request.videoId());
+        List<ChunkResponse> chunks = retriever.fetchAllChunks(request.videoId(), RetrieverAgent.AUDIO_SOURCE);
         trace.put("retriever", Map.of(
+                "source_preference", RetrieverAgent.AUDIO_SOURCE,
                 "total_chunks", chunks.size(),
                 "latency_ms", System.currentTimeMillis() - t));
+
+        if (chunks.isEmpty()) {
+            t = System.currentTimeMillis();
+            chunks = retriever.fetchAllChunks(request.videoId());
+            trace.put("retriever_fallback", Map.of(
+                    "mode", "all_chunks",
+                    "total_chunks", chunks.size(),
+                    "latency_ms", System.currentTimeMillis() - t));
+        }
 
         if (chunks.isEmpty()) {
             return new ResponseTypes.SummarizeResponse(

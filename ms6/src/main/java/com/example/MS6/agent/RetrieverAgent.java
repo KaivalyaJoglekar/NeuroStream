@@ -17,6 +17,8 @@ import java.util.List;
 public class RetrieverAgent {
 
     private static final Logger log = LoggerFactory.getLogger(RetrieverAgent.class);
+    public static final String AUDIO_SOURCE = "audio";
+    public static final String VISUAL_SOURCE = "visual";
 
     private final Ms3Client ms3Client;
     private final int defaultLimit;
@@ -29,7 +31,13 @@ public class RetrieverAgent {
     /** Fetch RAG-ready context blocks for a single video. */
     public Ms3Types.ContextResponse fetchContext(String videoId, String query) {
         log.info("RetrieverAgent: context for video={} query='{}'", videoId, query);
-        return ms3Client.getContext(videoId, query, defaultLimit);
+        return ms3Client.getContext(videoId, query, defaultLimit, null);
+    }
+
+    /** Fetch source-filtered RAG-ready context blocks for a single video. */
+    public Ms3Types.ContextResponse fetchContext(String videoId, String query, String source) {
+        log.info("RetrieverAgent: context for video={} query='{}' source={}", videoId, query, source);
+        return ms3Client.getContext(videoId, query, defaultLimit, source);
     }
 
     /** Global search across all indexed videos. */
@@ -47,7 +55,13 @@ public class RetrieverAgent {
     /** Fetch the full ordered transcript for summarization. */
     public List<Ms3Types.ChunkResponse> fetchAllChunks(String videoId) {
         log.info("RetrieverAgent: all chunks for video={}", videoId);
-        return ms3Client.getChunks(videoId);
+        return ms3Client.getChunks(videoId, null);
+    }
+
+    /** Fetch source-filtered ordered chunks for a single video. */
+    public List<Ms3Types.ChunkResponse> fetchAllChunks(String videoId, String source) {
+        log.info("RetrieverAgent: all chunks for video={} source={}", videoId, source);
+        return ms3Client.getChunks(videoId, source);
     }
 
     /** Check if a video is indexed and ready. */

@@ -196,7 +196,12 @@ function VideoDetailsView({ videoId }: { videoId: string }) {
         {/* Right Column: Cognitive Panel (MS2, MS3, MS6, MS7) */}
         <div className="lg:col-span-1 h-full">
             <div className="sticky top-6">
-                <CognitivePanel videoId={videoId} onJumpToTime={jumpToTime} />
+                <CognitivePanel
+                  videoId={videoId}
+                  onJumpToTime={jumpToTime}
+                  searchableReady={video.searchableReady}
+                  currentStatus={video.status}
+                />
             </div>
         </div>
       </div>

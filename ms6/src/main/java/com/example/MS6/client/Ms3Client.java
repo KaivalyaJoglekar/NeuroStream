@@ -43,13 +43,14 @@ public class Ms3Client {
     }
 
     /** Fetch RAG-ready context blocks for a single video, optionally ranked by query. */
-    public Ms3Types.ContextResponse getContext(String videoId, String query, int limit) {
-        log.debug("MS3 /video/{}/context query='{}' limit={}", videoId, query, limit);
+    public Ms3Types.ContextResponse getContext(String videoId, String query, int limit, String source) {
+        log.debug("MS3 /video/{}/context query='{}' limit={} source={}", videoId, query, limit, source);
         try {
             return restClient.get()
                     .uri(uriBuilder -> {
                         uriBuilder.path("/video/{videoId}/context");
                         if (query != null) uriBuilder.queryParam("query", query);
+                        if (source != null) uriBuilder.queryParam("source", source);
                         uriBuilder.queryParam("limit", limit);
                         return uriBuilder.build(videoId);
                     })
@@ -62,11 +63,15 @@ public class Ms3Client {
     }
 
     /** Fetch the full ordered transcript for a video. */
-    public List<Ms3Types.ChunkResponse> getChunks(String videoId) {
-        log.debug("MS3 /video/{}/chunks", videoId);
+    public List<Ms3Types.ChunkResponse> getChunks(String videoId, String source) {
+        log.debug("MS3 /video/{}/chunks source={}", videoId, source);
         try {
             return restClient.get()
-                    .uri("/video/{videoId}/chunks", videoId)
+                    .uri(uriBuilder -> {
+                        uriBuilder.path("/video/{videoId}/chunks");
+                        if (source != null) uriBuilder.queryParam("source", source);
+                        return uriBuilder.build(videoId);
+                    })
                     .retrieve()
                     .body(new ParameterizedTypeReference<>() {});
         } catch (HttpClientErrorException.NotFound e) {

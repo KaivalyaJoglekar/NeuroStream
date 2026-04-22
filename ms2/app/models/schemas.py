@@ -88,4 +88,7 @@ class HealthResponse(BaseModel):
     status: str = "ok"
     service: str
     execution_mode: str
-
+    mock_external_services: bool
+    transcription_backend: str
+    vision_backend: str
+    embedding_backend: str

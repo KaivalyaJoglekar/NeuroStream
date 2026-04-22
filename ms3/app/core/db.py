@@ -80,7 +80,7 @@ class SearchRepository(Protocol):
     async def get_status(self, video_id: UUID) -> VideoStatusResponse | None:
         ...
 
-    async def get_chunks(self, video_id: UUID) -> list[ChunkResponse]:
+    async def get_chunks(self, video_id: UUID, source: str | None = None) -> list[ChunkResponse]:
         ...
 
 
@@ -207,7 +207,7 @@ class InMemoryRepository:
             indexed_at=video.indexed_at,
         )
 
-    async def get_chunks(self, video_id: UUID) -> list[ChunkResponse]:
+    async def get_chunks(self, video_id: UUID, source: str | None = None) -> list[ChunkResponse]:
         return [
             ChunkResponse(
                 id=chunk.id,
@@ -220,6 +220,7 @@ class InMemoryRepository:
                 frame_ref=chunk.frame_ref,
             )
             for chunk in sorted(self._chunks.get(video_id, []), key=lambda item: item.chunk_index)
+            if source is None or chunk.source == source
         ]
 
 
@@ -466,18 +467,26 @@ class PostgresRepository:
             indexed_at=row["indexed_at"],
         )
 
-    async def get_chunks(self, video_id: UUID) -> list[ChunkResponse]:
+    async def get_chunks(self, video_id: UUID, source: str | None = None) -> list[ChunkResponse]:
+        where_clauses = ["video_id = CAST(:video_id AS UUID)"]
+        params: dict[str, object] = {"video_id": str(video_id)}
+        if source:
+            where_clauses.append("source = :source")
+            params["source"] = source
+
         async with self._engine.connect() as connection:
             result = await connection.execute(
                 text(
                     """
                     SELECT id, video_id, chunk_index, start_time, end_time, text, source, frame_ref
                     FROM transcript_chunks
-                    WHERE video_id = CAST(:video_id AS UUID)
+                    WHERE """
+                    + " AND ".join(where_clauses)
+                    + """
                     ORDER BY chunk_index ASC
                     """
                 ),
-                {"video_id": str(video_id)},
+                params,
             )
             rows = result.mappings().all()
 

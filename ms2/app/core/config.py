@@ -56,9 +56,8 @@ def get_settings() -> Settings:
         openai_api_key=os.getenv("OPENAI_API_KEY", ""),
         ms3_base_url=os.getenv("MS3_BASE_URL", "").rstrip("/"),
         ms4_base_url=os.getenv("MS4_BASE_URL", "").rstrip("/"),
-    ms4_api_key=_get_first_env(["MS4_API_KEY", "MS4_TOKEN"], ""),
+        ms4_api_key=_get_first_env(["MS4_INTERNAL_API_KEY", "MS4_API_KEY", "MS4_TOKEN", "INTERNAL_API_KEY"], ""),
         embedding_dimensions=int(os.getenv("EMBEDDING_DIMENSIONS", "768")),
         process_inline=_get_bool("MS2_PROCESS_INLINE", True),
         mock_external_services=_get_bool("MOCK_EXTERNAL_SERVICES", True),
     )
-
