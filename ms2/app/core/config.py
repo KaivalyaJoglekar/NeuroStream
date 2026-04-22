@@ -30,7 +30,7 @@ class Settings:
     gemini_api_key: str
     gemini_vision_model: str
     gemini_embedding_model: str
-    whisper_model: str
+    openai_api_key: str
     ms3_base_url: str
     ms4_base_url: str
     embedding_dimensions: int
@@ -53,7 +53,7 @@ def get_settings() -> Settings:
             "GEMINI_EMBEDDING_MODEL",
             "models/text-embedding-004",
         ),
-        whisper_model=os.getenv("WHISPER_MODEL", "base"),
+        openai_api_key=os.getenv("OPENAI_API_KEY", ""),
         ms3_base_url=os.getenv("MS3_BASE_URL", "").rstrip("/"),
         ms4_base_url=os.getenv("MS4_BASE_URL", "").rstrip("/"),
     ms4_api_key=_get_first_env(["MS4_API_KEY", "MS4_TOKEN"], ""),

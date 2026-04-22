@@ -22,23 +22,23 @@ class TranscriptionService:
         if not audio_segments:
             return []
 
-        if not self._settings.mock_external_services:
+        if not self._settings.mock_external_services and self._settings.openai_api_key:
             try:
-                return await asyncio.to_thread(self._transcribe_with_whisper, audio_segments)
+                return await asyncio.to_thread(self._transcribe_with_openai_api, audio_segments)
             except Exception as exc:
-                logger.warning("Whisper transcription failed, falling back to mock output: %s", exc)
+                logger.warning("OpenAI Whisper API failed, falling back to mock output: %s", exc)
 
         return self._fallback_transcription(audio_segments)
 
-    def _transcribe_with_whisper(
+    def _transcribe_with_openai_api(
         self,
         audio_segments: Sequence[AudioSegmentInput],
     ) -> list[TranscriptSegment]:
-        import whisper
+        """Transcribe audio using the OpenAI Whisper API (cloud, no local model)."""
+        from openai import OpenAI
 
-        model = whisper.load_model(self._settings.whisper_model)
+        client = OpenAI(api_key=self._settings.openai_api_key)
         transcripts: list[TranscriptSegment] = []
-        cursor = 0.0
         downloaded_files: list[str] = []
 
         try:
@@ -51,35 +51,56 @@ class TranscriptionService:
                     local_path = download_s3_file(self._settings, audio_segment.s3_key)
                     downloaded_files.append(local_path)
 
-                result = model.transcribe(local_path)
-                segments = result.get("segments") or []
-                start_offset = audio_segment.start_time if audio_segment.start_time is not None else cursor
+                start_offset = audio_segment.start_time if audio_segment.start_time is not None else 0.0
+
+                logger.info(
+                    "Transcribing segment %d/%d via OpenAI API: %s",
+                    index + 1, len(audio_segments), audio_segment.s3_key,
+                )
+
+                # Call OpenAI Whisper API with verbose JSON for timestamps
+                with open(local_path, "rb") as audio_file:
+                    response = client.audio.transcriptions.create(
+                        model="whisper-1",
+                        file=audio_file,
+                        response_format="verbose_json",
+                        timestamp_granularities=["segment"],
+                    )
+
+                # Parse segments from the response
+                segments = getattr(response, "segments", None) or []
+
                 if segments:
                     for segment in segments:
-                        start_time = start_offset + float(segment.get("start", 0.0))
-                        end_time = start_offset + float(segment.get("end", float(segment.get("start", 0.0))))
+                        seg_start = start_offset + float(getattr(segment, "start", 0.0))
+                        seg_end = start_offset + float(getattr(segment, "end", seg_start))
+                        seg_text = getattr(segment, "text", "").strip()
+
+                        if not seg_text:
+                            continue
+
                         transcripts.append(
                             TranscriptSegment(
-                                start_time=start_time,
-                                end_time=end_time,
-                                text=segment.get("text", "").strip() or f"Segment {index + 1}",
+                                start_time=seg_start,
+                                end_time=seg_end,
+                                text=seg_text,
                                 source_key=audio_segment.s3_key,
                             )
                         )
-                    cursor = transcripts[-1].end_time
-                    continue
+                else:
+                    # No segments returned — use the full text as one block
+                    full_text = getattr(response, "text", "").strip()
+                    if full_text:
+                        end_time = audio_segment.end_time if audio_segment.end_time is not None else start_offset + 15.0
+                        transcripts.append(
+                            TranscriptSegment(
+                                start_time=start_offset,
+                                end_time=end_time,
+                                text=full_text,
+                                source_key=audio_segment.s3_key,
+                            )
+                        )
 
-                start_time = audio_segment.start_time if audio_segment.start_time is not None else cursor
-                end_time = audio_segment.end_time if audio_segment.end_time is not None else start_time + 15.0
-                transcripts.append(
-                    TranscriptSegment(
-                        start_time=start_time,
-                        end_time=end_time,
-                        text=result.get("text", "").strip() or f"Transcribed audio {index + 1}",
-                        source_key=audio_segment.s3_key,
-                    )
-                )
-                cursor = end_time
         finally:
             # Clean up downloaded temp files
             for path in downloaded_files:
@@ -88,6 +109,7 @@ class TranscriptionService:
                 except OSError:
                     pass
 
+        logger.info("OpenAI API transcription complete: %d segments", len(transcripts))
         return transcripts
 
     def _fallback_transcription(

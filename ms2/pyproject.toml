@@ -9,7 +9,7 @@ dependencies = [
     "fastapi",
     "google-generativeai",
     "httpx",
-    "openai-whisper",
+    "openai",
     "Pillow",
     "pydantic",
     "python-dotenv",
