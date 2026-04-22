@@ -1,16 +1,16 @@
 import logging
+import sys
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import get_settings
-from app.database import init_db, close_db
-from app.routers import health, events, analytics
 
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+    stream=sys.stdout,
 )
 logger = logging.getLogger(__name__)
 
@@ -21,8 +21,16 @@ settings = get_settings()
 async def lifespan(app: FastAPI):
     """Application lifespan: startup and shutdown events."""
     logger.info("Starting MS5 Analytics Service...")
-    await init_db()
-    logger.info(f"MS5 ready (env={settings.APP_ENV}, port={settings.APP_PORT})")
+    logger.info("DATABASE_URL scheme: %s", settings.DATABASE_URL.split("://")[0])
+
+    from app.database import init_db, close_db
+    try:
+        await init_db()
+    except Exception:
+        logger.exception("FATAL: Database init failed")
+        raise
+
+    logger.info("MS5 ready (env=%s, port=%s)", settings.APP_ENV, settings.APP_PORT)
     yield
     logger.info("Shutting down MS5...")
     await close_db()
@@ -43,6 +51,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Import routers AFTER app is created (they import from database which is
+# now lazy, so this is safe — they just reference get_db as a dependency).
+from app.routers import health, events, analytics  # noqa: E402
 
 app.include_router(health.router)
 app.include_router(events.router)
