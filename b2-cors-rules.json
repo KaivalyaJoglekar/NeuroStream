@@ -1,0 +1,26 @@
+[
+  {
+    "corsRuleName": "allowAllOrigins",
+    "allowedOrigins": ["*"],
+    "allowedHeaders": ["*"],
+    "allowedOperations": [
+      "s3_head",
+      "s3_get",
+      "s3_put",
+      "s3_post",
+      "s3_delete",
+      "b2_download_file_by_id",
+      "b2_download_file_by_name",
+      "b2_upload_file",
+      "b2_upload_part"
+    ],
+    "exposeHeaders": [
+      "ETag",
+      "x-amz-request-id",
+      "x-amz-id-2",
+      "Content-Length",
+      "Content-Type"
+    ],
+    "maxAgeSeconds": 86400
+  }
+]

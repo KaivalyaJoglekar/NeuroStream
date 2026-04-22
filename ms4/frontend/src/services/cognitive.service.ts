@@ -165,7 +165,7 @@ function getErrorMessage(payload: unknown, statusText: string): string {
   return statusText || 'Request failed';
 }
 
-async function microserviceRequest<T>(url: string, options: RequestInit = {}): Promise<ApiResponse<T>> {
+async function microserviceRequest<T>(url: string, options: RequestInit = {}, timeoutMs = 45000): Promise<ApiResponse<T>> {
   const headers = new Headers(options.headers);
   const token = getStoredToken();
 
@@ -177,7 +177,7 @@ async function microserviceRequest<T>(url: string, options: RequestInit = {}): P
   }
 
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 45000);
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
     const response = await fetch(url, {
@@ -212,7 +212,7 @@ async function microserviceRequest<T>(url: string, options: RequestInit = {}): P
     if (error instanceof DOMException && error.name === 'AbortError') {
       return {
         success: false,
-        error: 'Request timed out after 45 seconds. The service may be starting up — please try again.',
+        error: `Request timed out after ${Math.round(timeoutMs / 1000)} seconds. The service may be starting up — please try again.`,
       };
     }
     const message = error instanceof Error ? error.message : 'Unknown error';
@@ -234,7 +234,7 @@ export async function chatInference(videoId: string, prompt: string, history: Ch
       question: prompt,
       conversation_history: history,
     }),
-  });
+  }, 120000);
 
   if (!response.success || !response.data) {
     return {

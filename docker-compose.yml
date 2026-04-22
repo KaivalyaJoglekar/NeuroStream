@@ -1,5 +1,5 @@
 services:
-  # Default mode: run only MS1 + local Redis
+  # Default mode: run only MS1 (uses Upstash cloud Redis — no local Redis needed)
   # Optional modes:
   #   --profile local-infra : starts MinIO helpers
   #   --profile full-stack  : starts the previous full local stack
@@ -38,15 +38,11 @@ services:
     env_file:
       - ./ms1/.env
     environment:
-      # Force local Redis in default docker-compose mode.
-      REDIS_URL: redis://redis:6379
+      REDIS_URL: "rediss://default:gQAAAAAAAW-lAAIgcDEyZGJmN2E5ZmUxODg0ZGU1YTI4YThlZWI1ZTYzYjc0ZA@prepared-earwig-94117.upstash.io:6379"
     ports:
       - "8081:8081"
     volumes:
       - ms1_tmp:/tmp/neurostream
-    depends_on:
-      redis:
-        condition: service_healthy
     restart: unless-stopped
 
   postgres:
@@ -62,6 +58,7 @@ services:
       - pgdata:/var/lib/postgresql/data
 
   redis:
+    profiles: ["full-stack"]  # Not needed locally — ms1 uses Upstash cloud Redis
     image: redis:7-alpine
     ports:
       - "6379:6379"
@@ -89,7 +86,7 @@ services:
     build:
       context: ./ms2
     environment:
-      REDIS_URL: redis://redis:6379/0
+      REDIS_URL: "rediss://default:gQAAAAAAAW-lAAIgcDEyZGJmN2E5ZmUxODg0ZGU1YTI4YThlZWI1ZTYzYjc0ZA@prepared-earwig-94117.upstash.io:6379"
       MS3_BASE_URL: http://ms3:8000
       MS4_BASE_URL: http://host.docker.internal:8084
       EMBEDDING_DIMENSIONS: 768
@@ -108,7 +105,7 @@ services:
     container_name: ms5-analytics
     environment:
       DATABASE_URL: postgresql+asyncpg://neurostream:neurostream@postgres:5432/neurostream_ms5
-      REDIS_URL: redis://redis:6379/1
+      REDIS_URL: "rediss://default:gQAAAAAAAW-lAAIgcDEyZGJmN2E5ZmUxODg0ZGU1YTI4YThlZWI1ZTYzYjc0ZA@prepared-earwig-94117.upstash.io:6379"
       APP_ENV: development
       APP_PORT: "8085"
       INTERNAL_API_SECRET: your_shared_internal_secret

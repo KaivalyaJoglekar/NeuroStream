@@ -3,6 +3,8 @@ from __future__ import annotations
 from typing import Annotated
 from uuid import UUID
 
+import asyncio
+import logging
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 
 from app.models.schemas import ContextResponse, HealthResponse, IndexRequest, IndexResponse, SearchResponse
@@ -26,13 +28,50 @@ def get_metadata_service(request: Request) -> MetadataService:
     return request.app.state.metadata_service
 
 
-def _parse_embedding(raw_value: str | None) -> list[float] | None:
-    if not raw_value:
+async def _resolve_embedding(
+    request: Request,
+    query_text: str | None,
+    query_embedding_str: str | None
+) -> list[float] | None:
+    if query_embedding_str:
+        try:
+            return [float(part.strip()) for part in query_embedding_str.split(",") if part.strip()]
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail="query_embedding must be comma-separated floats") from exc
+
+    if not query_text:
         return None
+
+    settings = request.app.state.settings
+    if not settings.gemini_api_key:
+        return None
+
+    import google.generativeai as genai
+    import math
+
+    genai.configure(api_key=settings.gemini_api_key)
     try:
-        return [float(part.strip()) for part in raw_value.split(",") if part.strip()]
-    except ValueError as exc:
-        raise HTTPException(status_code=400, detail="query_embedding must be comma-separated floats") from exc
+        response = await asyncio.to_thread(
+            genai.embed_content,
+            model=settings.gemini_embedding_model,
+            content=query_text,
+            task_type="retrieval_query",
+        )
+        if isinstance(response, dict):
+            vec = response.get("embedding") if "embedding" in response else response.get("embeddings", [])[0]
+        else:
+            vec = getattr(response, "embedding", None)
+
+        if vec:
+            values = [float(v) for v in vec]
+            norm = math.sqrt(sum(v * v for v in values))
+            if norm > 0:
+                return [v / norm for v in values]
+            return values
+    except Exception as exc:
+        logging.getLogger(__name__).warning("Failed to generate query embedding: %s", exc)
+
+    return None
 
 
 @router.get("/health", response_model=HealthResponse)
@@ -56,6 +95,7 @@ async def index_video(
 
 @router.get("/search", response_model=SearchResponse)
 async def search(
+    request: Request,
     search_service: Annotated[SearchService, Depends(get_search_service)],
     query: str | None = Query(default=None, description="Free-text query"),
     query_embedding: str | None = Query(default=None, description="Comma-separated embedding vector"),
@@ -66,9 +106,10 @@ async def search(
     limit: int | None = Query(default=None, ge=1),
 ) -> SearchResponse:
     try:
+        resolved_embedding = await _resolve_embedding(request, query, query_embedding)
         return await search_service.search(
             query_text=query,
-            query_embedding=_parse_embedding(query_embedding),
+            query_embedding=resolved_embedding,
             video_id=video_id,
             language=language,
             title_contains=title_contains,
@@ -103,6 +144,7 @@ async def video_chunks(
 
 @router.get("/video/{video_id}/context", response_model=ContextResponse)
 async def video_context(
+    request: Request,
     video_id: UUID,
     metadata_service: Annotated[MetadataService, Depends(get_metadata_service)],
     query: str | None = None,
@@ -110,10 +152,11 @@ async def video_context(
     limit: int = Query(default=5, ge=1),
 ) -> ContextResponse:
     try:
+        resolved_embedding = await _resolve_embedding(request, query, query_embedding)
         payload = await metadata_service.build_context(
             video_id=video_id,
             query_text=query,
-            query_embedding=_parse_embedding(query_embedding),
+            query_embedding=resolved_embedding,
             limit=limit,
         )
     except ValueError as exc:

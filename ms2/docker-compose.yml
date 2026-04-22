@@ -35,7 +35,7 @@ services:
     build:
       context: .
     environment:
-      REDIS_URL: redis://redis:6379/0
+      REDIS_URL: "rediss://default:gQAAAAAAAW-lAAIgcDEyZGJmN2E5ZmUxODg0ZGU1YTI4YThlZWI1ZTYzYjc0ZA@prepared-earwig-94117.upstash.io:6379"
       MS3_BASE_URL: http://ms3:8000
       MS4_BASE_URL: http://host.docker.internal:8084
       EMBEDDING_DIMENSIONS: 768
