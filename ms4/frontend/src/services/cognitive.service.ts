@@ -379,9 +379,38 @@ export async function getTranscripts(videoId: string) {
   );
 
   if (!response.success || !response.data) {
+    const rawError = response.error ?? 'Unable to fetch transcript chunks from MS3';
+
+    if (/video not found/i.test(rawError)) {
+      const statusResp = await microserviceRequest<Ms3VideoStatusResponse>(
+        joinUrl(MS3_BASE_URL, `/video/${videoId}/status`),
+        {},
+        10000,
+      );
+
+      if (statusResp.success && statusResp.data?.status) {
+        if (statusResp.data.status.toLowerCase() !== 'ready') {
+          return {
+            success: false,
+            error: 'This video is still being indexed in MS3. Transcript chunks should appear shortly.',
+          } as ApiResponse<TranscriptSegment[]>;
+        }
+
+        return {
+          success: false,
+          error: 'MS3 reports this video as ready, but transcript chunks are not readable yet. Retrying should succeed shortly.',
+        } as ApiResponse<TranscriptSegment[]>;
+      }
+
+      return {
+        success: false,
+        error: 'This video has not been indexed in MS3 yet. Wait for processing to finish and retry.',
+      } as ApiResponse<TranscriptSegment[]>;
+    }
+
     return {
       success: false,
-      error: response.error ?? 'Unable to fetch transcript chunks from MS3',
+      error: rawError,
     } as ApiResponse<TranscriptSegment[]>;
   }
 

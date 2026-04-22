@@ -17,17 +17,34 @@ export function VideoTranscripts({ videoId, onJumpToTime }: VideoTranscriptsProp
 
   useEffect(() => {
     let mounted = true;
+    const maxAttempts = 8;
+    const retryDelayMs = 3500;
+
+    const shouldRetry = (message?: string) =>
+      !!message &&
+      /still being indexed|not been indexed|retrying should succeed shortly|appear shortly/i.test(message);
+
     const fetchTS = async () => {
       try {
-        const res = await getTranscripts(videoId);
-        if (mounted && res.success && res.data) {
-          setTranscripts(res.data);
-        } else if (mounted) {
+        for (let attempt = 1; attempt <= maxAttempts && mounted; attempt += 1) {
+          const res = await getTranscripts(videoId);
+
+          if (res.success && res.data) {
+            setTranscripts(res.data);
+            return;
+          }
+
+          if (attempt < maxAttempts && shouldRetry(res.error)) {
+            await new Promise((resolve) => window.setTimeout(resolve, retryDelayMs));
+            continue;
+          }
+
           pushToast({
             title: 'Transcripts unavailable',
             description: res.error ?? 'MS3 transcript chunks are not available yet.',
             type: 'error',
           });
+          return;
         }
       } catch {
         if (mounted) {
