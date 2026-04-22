@@ -1,5 +1,11 @@
 services:
+  # Default mode: run only MS1 (use hosted Redis + S3 via ms1/.env)
+  # Optional modes:
+  #   --profile local-infra : starts local Redis + MinIO helpers
+  #   --profile full-stack  : starts the previous full local stack
+
   minio:
+    profiles: ["local-infra", "full-stack"]
     image: minio/minio:latest
     ports:
       - "9000:9000"
@@ -13,6 +19,7 @@ services:
 
   # MinIO bucket initialization for MS1 (safe to keep even if MS1 is disabled)
   minio-init:
+    profiles: ["local-infra", "full-stack"]
     image: minio/mc:latest
     depends_on:
       - minio
@@ -28,16 +35,15 @@ services:
       context: ./ms1
     container_name: ms1-media-processor
     env_file:
-      - ./ms1/.env.example
+      - ./ms1/.env
     ports:
       - "8081:8081"
     volumes:
-      - /tmp/neurostream:/tmp/neurostream
-    depends_on:
-      - redis
-      - minio
+      - ms1_tmp:/tmp/neurostream
+    restart: unless-stopped
 
   postgres:
+    profiles: ["full-stack"]
     image: pgvector/pgvector:pg16
     environment:
       POSTGRES_DB: neurostream
@@ -49,11 +55,13 @@ services:
       - pgdata:/var/lib/postgresql/data
 
   redis:
+    profiles: ["local-infra", "full-stack"]
     image: redis:7-alpine
     ports:
       - "6379:6379"
 
   ms3:
+    profiles: ["full-stack"]
     build:
       context: ./ms3
     environment:
@@ -66,6 +74,7 @@ services:
       - "8003:8000"
 
   ms2:
+    profiles: ["full-stack"]
     build:
       context: ./ms2
     environment:
@@ -82,6 +91,7 @@ services:
       - "8002:8000"
 
   ms5:
+    profiles: ["full-stack"]
     build:
       context: ./ms5-analytics
     container_name: ms5-analytics
@@ -100,6 +110,7 @@ services:
       sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8085"
 
 volumes:
+  ms1_tmp:
   pgdata:
   minio_data:
 
