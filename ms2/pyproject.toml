@@ -10,6 +10,7 @@ dependencies = [
     "google-generativeai",
     "httpx",
     "openai-whisper",
+    "Pillow",
     "pydantic",
     "python-dotenv",
     "uvicorn",

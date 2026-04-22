@@ -2,11 +2,13 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import os
 from pathlib import Path
 from typing import Sequence
 
 from app.core.config import Settings
 from app.models.schemas import AudioSegmentInput, TranscriptSegment
+from app.services.s3_helper import download_s3_file
 
 
 logger = logging.getLogger(__name__)
@@ -37,42 +39,55 @@ class TranscriptionService:
         model = whisper.load_model(self._settings.whisper_model)
         transcripts: list[TranscriptSegment] = []
         cursor = 0.0
-        for index, audio_segment in enumerate(audio_segments):
-            media_path = Path(audio_segment.s3_key)
-            if not media_path.exists():
-                raise FileNotFoundError(
-                    f"Audio segment {audio_segment.s3_key} must be a local file path when "
-                    "MOCK_EXTERNAL_SERVICES=false"
-                )
-            result = model.transcribe(str(media_path))
-            segments = result.get("segments") or []
-            start_offset = audio_segment.start_time if audio_segment.start_time is not None else cursor
-            if segments:
-                for segment in segments:
-                    start_time = start_offset + float(segment.get("start", 0.0))
-                    end_time = start_offset + float(segment.get("end", float(segment.get("start", 0.0))))
-                    transcripts.append(
-                        TranscriptSegment(
-                            start_time=start_time,
-                            end_time=end_time,
-                            text=segment.get("text", "").strip() or f"Segment {index + 1}",
-                            source_key=audio_segment.s3_key,
-                        )
-                    )
-                cursor = transcripts[-1].end_time
-                continue
+        downloaded_files: list[str] = []
 
-            start_time = audio_segment.start_time if audio_segment.start_time is not None else cursor
-            end_time = audio_segment.end_time if audio_segment.end_time is not None else start_time + 15.0
-            transcripts.append(
-                TranscriptSegment(
-                    start_time=start_time,
-                    end_time=end_time,
-                    text=result.get("text", "").strip() or f"Transcribed audio {index + 1}",
-                    source_key=audio_segment.s3_key,
+        try:
+            for index, audio_segment in enumerate(audio_segments):
+                # Resolve file: download from S3 if not a local path
+                media_path = Path(audio_segment.s3_key)
+                if media_path.exists():
+                    local_path = str(media_path)
+                else:
+                    local_path = download_s3_file(self._settings, audio_segment.s3_key)
+                    downloaded_files.append(local_path)
+
+                result = model.transcribe(local_path)
+                segments = result.get("segments") or []
+                start_offset = audio_segment.start_time if audio_segment.start_time is not None else cursor
+                if segments:
+                    for segment in segments:
+                        start_time = start_offset + float(segment.get("start", 0.0))
+                        end_time = start_offset + float(segment.get("end", float(segment.get("start", 0.0))))
+                        transcripts.append(
+                            TranscriptSegment(
+                                start_time=start_time,
+                                end_time=end_time,
+                                text=segment.get("text", "").strip() or f"Segment {index + 1}",
+                                source_key=audio_segment.s3_key,
+                            )
+                        )
+                    cursor = transcripts[-1].end_time
+                    continue
+
+                start_time = audio_segment.start_time if audio_segment.start_time is not None else cursor
+                end_time = audio_segment.end_time if audio_segment.end_time is not None else start_time + 15.0
+                transcripts.append(
+                    TranscriptSegment(
+                        start_time=start_time,
+                        end_time=end_time,
+                        text=result.get("text", "").strip() or f"Transcribed audio {index + 1}",
+                        source_key=audio_segment.s3_key,
+                    )
                 )
-            )
-            cursor = end_time
+                cursor = end_time
+        finally:
+            # Clean up downloaded temp files
+            for path in downloaded_files:
+                try:
+                    os.remove(path)
+                except OSError:
+                    pass
+
         return transcripts
 
     def _fallback_transcription(

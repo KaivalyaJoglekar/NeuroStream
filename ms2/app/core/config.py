@@ -15,7 +15,7 @@ def _get_bool(name: str, default: bool) -> bool:
 def _get_first_env(names: list[str], default: str = "") -> str:
     for name in names:
         value = os.getenv(name)
-        if value is not None:
+        if value is not None and value != "":
             return value
     return default
 
