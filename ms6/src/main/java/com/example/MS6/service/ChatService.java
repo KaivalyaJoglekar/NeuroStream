@@ -24,6 +24,7 @@ import java.util.stream.Collectors;
 public class ChatService {
 
     private static final Logger log = LoggerFactory.getLogger(ChatService.class);
+    private static final int FALLBACK_MAX_CHUNKS = 20;
 
     private final RetrieverAgent retriever;
     private final AnalyzerAgent analyzer;
@@ -52,13 +53,28 @@ public class ChatService {
                 "chunks_fetched", context.contextBlocks().size(),
                 "latency_ms", System.currentTimeMillis() - t));
 
-        if (context.contextBlocks().isEmpty()) {
+        List<String> contextBlocks = context.contextBlocks();
+        if (contextBlocks.isEmpty()) {
+            // Fallback to full transcript chunks when semantic context search returns empty.
+            t = System.currentTimeMillis();
+            contextBlocks = retriever.fetchAllChunks(request.videoId()).stream()
+                    .limit(FALLBACK_MAX_CHUNKS)
+                    .map(chunk -> String.format("[%.2f-%.2f] %s (source=%s)",
+                            chunk.startTime(), chunk.endTime(), chunk.text(), chunk.source()))
+                    .collect(Collectors.toList());
+            trace.put("retriever_fallback", Map.of(
+                    "mode", "video_chunks",
+                    "chunks_fetched", contextBlocks.size(),
+                    "latency_ms", System.currentTimeMillis() - t));
+        }
+
+        if (contextBlocks.isEmpty()) {
             return new ResponseTypes.ChatResponse(
                     "No relevant content found in this video.", List.of(), trace);
         }
 
         // 2–4. Run analysis pipeline
-        return runPipeline(request.question(), context.contextBlocks(),
+        return runPipeline(request.question(), contextBlocks,
                 request.conversationHistory(), trace);
     }
 

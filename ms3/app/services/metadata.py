@@ -42,6 +42,11 @@ class MetadataService:
                 )
                 for chunk in chunks
             ]
+            if not blocks:
+                blocks = [
+                    f"[{chunk.start_time:.2f}-{chunk.end_time:.2f}] {chunk.text} (source={chunk.source})"
+                    for chunk in await self._repository.get_chunks(video_id)
+                ][:limit]
         else:
             blocks = [
                 f"[{chunk.start_time:.2f}-{chunk.end_time:.2f}] {chunk.text} (source={chunk.source})"
