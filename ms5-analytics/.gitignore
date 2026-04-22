@@ -1,28 +1,5 @@
-# Python
-__pycache__/
-*.py[cod]
-*.egg-info/
-dist/
-build/
-*.egg
-
-# Virtual environment
-venv/
-.venv/
-
-# Environment files
+node_modules/
 .env
-
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-
-# Test artifacts
-test_ms5.db
-.pytest_cache/
-
-# OS
+*.db
+dist/
 .DS_Store
-Thumbs.db
